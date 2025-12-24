@@ -8,162 +8,148 @@
     <style>
         body {
             font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
-            background-color: transparent; /* 배경 투명하게 (구글 사이트 배경 따라감) */
+            background-color: transparent; /* 배경 투명 */
             margin: 0;
-            padding: 10px;
-        }
-
-        /* 메인 컨테이너: 반응형 핵심 */
-        .container {
+            padding: 0;
+            overflow: hidden; /* 스크롤바 원천 차단 */
             display: flex;
-            flex-direction: row; /* 기본은 가로 정렬 */
-            justify-content: space-around;
-            align-items: flex-start;
-            gap: 20px;
-            max-width: 900px;
-            margin: 0 auto;
-            background-color: #e0e0e0; /* 올려주신 이미지의 회색 배경 */
-            padding: 30px 20px;
-            border-radius: 10px; /* 모서리 둥글게 */
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* iframe 꽉 채우기 */
         }
 
+        /* 공통 박스 스타일 */
         .stat-box {
-            flex: 1; /* 공간을 1:1로 차지 */
             text-align: center;
-            min-width: 250px; /* 너무 좁아지면 줄바꿈 유도 */
+            width: 100%;
+            display: none; /* 기본적으로 다 숨김 (스크립트가 켬) */
         }
 
         .stat-label {
             color: #555;
-            font-size: 15px;
-            margin-bottom: 15px;
-            font-weight: 500;
+            font-size: 16px;
+            margin-bottom: 5px;
+            font-weight: 600;
         }
 
         .stat-value {
-            font-size: 48px;
+            font-size: 56px; /* 폰트 더 키움 (단독이니까) */
             font-weight: 800;
             color: #333;
-            margin-bottom: 10px;
-            letter-spacing: -1px;
-            line-height: 1;
+            margin-bottom: 5px;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            font-variant-numeric: tabular-nums;
         }
 
         .unit {
             font-size: 24px;
             font-weight: 600;
             margin-left: 2px;
-            color: #555;
-        }
-
-        .text-orange {
-            color: #ff9800; /* 오렌지색 포인트 */
-        }
-
-        /* 하단 상세 정보 (개인/단체) */
-        .sub-info {
-            display: inline-block;
-            background-color: #efefef;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 13px;
             color: #777;
+        }
+
+        .text-orange { color: #ff9800; }
+
+        /* 상세 정보 (개인/단체) */
+        .sub-info {
+            display: inline-flex;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.5); /* 반투명 흰색 */
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            color: #666;
             margin-top: 5px;
+            justify-content: center;
         }
         
-        .sub-item {
-            display: inline-block;
-            margin: 0 5px;
-        }
-        
-        .sub-item strong {
-            color: #444;
-        }
-
-        /* 구분선 (PC에서만 보임) */
-        .divider {
-            width: 1px;
-            height: 80px;
-            background-color: #ccc;
-            margin-top: 10px;
-        }
-
-        /* 📱 모바일 최적화 (화면 폭 600px 이하일 때) */
-        @media (max-width: 600px) {
-            .container {
-                flex-direction: column; /* 세로 정렬로 변경 */
-                align-items: center;
-                gap: 40px; /* 위아래 간격 벌림 */
-            }
-            
-            .divider {
-                display: none; /* 모바일에서는 구분선 숨김 */
-            }
-
-            .stat-value {
-                font-size: 40px; /* 숫자 크기 살짝 조정 */
-            }
-        }
+        .sub-item strong { color: #333; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="stat-box">
-            <div class="stat-label">현재 조합원</div>
-            <div class="stat-value">
-                <span id="totalMember">0</span><span class="unit">명</span>
-            </div>
-            <div class="sub-info">
-                <span class="sub-item">개인 <strong id="indivCount">0</strong>명</span>
-                <span class="sub-item">단체 <strong id="groupCount">0</strong>개소</span>
-            </div>
+    <div id="card-member" class="stat-box">
+        <div class="stat-label">현재 조합원</div>
+        <div class="stat-value">
+            <span id="totalMember">0</span><span class="unit">명</span>
         </div>
+        <div class="sub-info">
+            <span class="sub-item">개인 <strong id="indivCount">0</strong></span>
+            <span class="sub-item">단체 <strong id="groupCount">0</strong></span>
+        </div>
+    </div>
 
-        <div class="divider"></div>
-
-        <div class="stat-box">
-            <div class="stat-label">모인 에너지 기금</div>
-            <div class="stat-value text-orange">
-                <span id="totalMoney">0</span><span class="unit">원</span>
-            </div>
+    <div id="card-money" class="stat-box">
+        <div class="stat-label">모인 에너지 기금</div>
+        <div class="stat-value text-orange">
+            <span id="totalMoney">0</span><span class="unit">원</span>
         </div>
     </div>
 
     <script>
-        // ⚠️ 배포하신 앱스크립트 URL 확인 (exec로 끝나는지 확인!)
+        // ⚠️ 배포하신 앱스크립트 URL
         const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
 
-        // 숫자 3자리마다 콤마 찍는 함수
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+        function animateCount(id, endValue) {
+            const element = document.getElementById(id);
+            const duration = 1500; 
+            const startTime = performance.now();
+            const startValue = 0;
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3); // cubic ease out
+                
+                const current = Math.floor(ease * (endValue - startValue) + startValue);
+                element.innerText = formatNumber(current);
+
+                if (progress < 1) requestAnimationFrame(update);
+                else element.innerText = formatNumber(endValue);
+            }
+            requestAnimationFrame(update);
         }
 
-        // 데이터 불러오기
         async function loadStats() {
             try {
-                // Main.gs의 doGet(?action=getStats)를 호출
+                // 1. URL 파라미터 확인 (?mode=member 또는 ?mode=money)
+                const urlParams = new URLSearchParams(window.location.search);
+                const mode = urlParams.get('mode');
+
+                // 2. 모드에 따라 박스 보이기/숨기기
+                if (mode === 'money') {
+                    document.getElementById('card-money').style.display = 'block';
+                } else {
+                    // 기본값은 member (또는 mode=member일 때)
+                    document.getElementById('card-member').style.display = 'block';
+                }
+
+                // 3. 데이터 가져오기 (둘 다 가져오긴 함)
                 const response = await fetch(API_URL + "?action=getStats");
                 const data = await response.json();
 
-                // 데이터 적용 (애니메이션 효과 없음, 즉시 적용)
-                document.getElementById('indivCount').innerText = formatNumber(data.individual);
-                document.getElementById('groupCount').innerText = formatNumber(data.group);
-                
-                // 총 인원 = 개인 + 단체
-                const total = Number(data.individual) + Number(data.group);
-                document.getElementById('totalMember').innerText = formatNumber(total);
+                const indiv = Number(data.individual) || 0;
+                const group = Number(data.group) || 0;
+                const money = Number(data.amount) || 0;
+                const total = indiv + group;
 
-                document.getElementById('totalMoney').innerText = formatNumber(data.amount);
+                // 4. 필요한 애니메이션만 실행
+                if (mode === 'money') {
+                    animateCount('totalMoney', money);
+                } else {
+                    animateCount('indivCount', indiv);
+                    animateCount('groupCount', group);
+                    animateCount('totalMember', total);
+                }
 
             } catch (error) {
-                console.error("데이터 로딩 실패:", error);
-                document.getElementById('totalMember').innerText = "-";
-                document.getElementById('totalMoney').innerText = "-";
+                console.error("Error:", error);
             }
         }
 
-        // 시작!
         loadStats();
     </script>
 
