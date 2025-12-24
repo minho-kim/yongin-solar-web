@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <style>
+      /* 디자인 스타일은 기존과 100% 동일합니다 */
+      :root { --primary-color: #4e8cff; --bg-color: #f0f7ff; --card-bg: #ffffff; }
+      body { font-family: 'Apple SD Gothic Neo', sans-serif; background-color: var(--bg-color); padding: 20px; margin: 0; display: flex; justify-content: center; color: #333; }
+      .container { width: 100%; max-width: 500px; position: relative; padding-bottom:50px; }
+      
+      .section-card { background: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+      .input-group { margin-bottom: 15px; }
+      label { display: block; font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; }
+      
+      .box-row { display: flex; gap: 8px; width: 100%; align-items: center; }
+      input, select, textarea { 
+        width: 100%; padding: 12px; border: 1px solid #e1e4e8; border-radius: 10px; 
+        box-sizing: border-box; background: #f9fbfd; font-size:15px; transition:0.2s;
+      }
+      input:focus, select:focus, textarea:focus { background: #fff; border-color: var(--primary-color); outline:none; box-shadow: 0 0 0 3px rgba(78, 140, 255, 0.1); }
+      
+      .btn-main { background: var(--primary-color); color: white; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; flex-shrink:0; transition: background 0.2s; box-shadow: 0 4px 10px rgba(78, 140, 255, 0.2); }
+      .btn-main:hover { transform:translateY(-1px); box-shadow: 0 6px 15px rgba(78, 140, 255, 0.3); }
+      .btn-main:disabled { background: #ccc; cursor: not-allowed; box-shadow:none; transform:none; }
+      
+      .btn-sub { background: #fff; color: var(--primary-color); border: 1px solid #dadce0; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; white-space:nowrap; flex-shrink:0; }
+      .btn-sub:hover { background: #f0f7ff; }
+      .btn-sub:disabled { color: #aaa; border-color: #eee; cursor: not-allowed; }
+
+      .top-util-bar { display:flex; justify-content:flex-end; margin-bottom:10px; }
+      .btn-logout { background:transparent; border:none; color:#999; font-size:12px; cursor:pointer; text-decoration:underline; padding:5px; }
+
+      .hidden { display: none !important; }
+      .summary-box { background: #f1f8ff; padding: 18px; border-radius: 12px; margin-bottom: 12px; font-size: 14px; border: 1px solid #e3f2fd; }
+      .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+      .summary-value { font-weight: bold; text-align: right; word-break:break-all; max-width:65%; color:#333; }
+      
+      .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+      .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; }
+      
+      .menu-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+      .menu-btn { background: #fff; border: 1px solid #ddd; padding: 10px 5px; border-radius: 10px; cursor: pointer; color: #666; font-weight: bold; transition:0.2s; font-size:13px; }
+      .menu-btn.active { background: #e8f0fe; color: #1967d2; border-color: #1967d2; font-weight:800; }
+
+      .radio-group { display: flex; align-items: center; gap: 15px; }
+      .check-item { display: flex; align-items: center; }
+      .check-item input, .radio-group input { width: 20px; height: 20px; margin-right: 8px; accent-color: var(--primary-color); cursor: pointer; margin-top:0; }
+
+      #layer { display:none; position:fixed; z-index:99999; background:white; top:50%; left:50%; transform:translate(-50%,-50%); width:90%; height:90%; border:1px solid #ddd; border-radius:10px; }
+      
+      #loadingOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:100000; justify-content:center; align-items:center; flex-direction:column; }
+      .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom:10px; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      
+      .error-msg { color: #ff5252; font-size: 12px; margin-top: 5px; min-height: 18px; text-align: left; }
+      .footer-contact { text-align: center; font-size: 12px; color: #888; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px; line-height: 1.5; }
+      
+      .notice-box { background-color: #fff3e0; border: 1px solid #ffe0b2; color: #e65100; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin-bottom: 15px; text-align: left; }
+      
+      /* 생일 배너 스타일 */
+      #birthdayBanner { display: none; background-color: #fffde7; color: #f57f17; border: 1px solid #fff59d; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; text-align: center; animation: fadeIn 1s; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+  </head>
+  <body>
+    <div id="loadingOverlay"><div class="spinner"></div><div style="font-weight:bold; color:#555;">잠시만 기다려주세요</div></div>
+    <div id="layer"><div style="cursor:pointer;position:absolute;right:0;top:0;width:40px;height:40px;background:#333;color:white;text-align:center;line-height:40px;" onclick="document.getElementById('layer').style.display='none'">×</div></div>
+
+    <div class="container">
+      
+      <div id="loginSection">
+          <div style="background:#e3f2fd; color:#1565c0; padding:20px; border-radius:12px; margin-bottom:20px; font-size:14px; line-height:1.5;">
+            <b>👋 안녕하세요, 조합원님!</b><br>본인 확인을 위해 조합원 번호를 입력해주세요.<br><br>문의: 사무국장 김민호 010-2513-5736
+          </div>
+          <div class="section-card">
+            <label>조합원 번호</label>
+            <div class="box-row">
+              <input type="text" id="memberIdInput" placeholder="예: 2025-01-0001" oninput="handleMemberIdInput(this)" onkeyup="if(event.key==='Enter') handleSearch()">
+              <button class="btn-main" id="btnSearch" style="width:auto; padding:12px 20px;" onclick="handleSearch()">조회</button>
+            </div>
+            <div style="font-size:11px; color:#888; margin-top:4px;">숫자만 입력하면 자동으로 변환됩니다.</div>
+            
+            <div id="emailAuthArea" class="hidden" style="margin-top:20px; border-top:1px dashed #eee; padding-top:20px;">
+              <label>등록된 이메일</label>
+              <div class="box-row" style="background:#f8f9fa; padding:10px; border-radius:8px; border:1px solid #eee;">
+                <input type="text" id="emailDisplay" readonly style="background:transparent; border:none; padding:0; color:#555; flex:1;">
+                <button class="btn-sub" id="btnSendAuth" onclick="requestAuth()">인증번호 받기</button>
+              </div>
+              
+              <div id="authInputBox" class="hidden" style="margin-top:15px;">
+                <div class="box-row">
+                  <input type="text" id="authCode" placeholder="인증번호 6자리" style="text-align:center; letter-spacing:3px;" oninput="clearError('loginAuthMsg')" onkeyup="handleAuthEnter(event)">
+                  <button class="btn-main" style="width:80px;" onclick="verifyAuth()">확인</button>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                   <div id="loginAuthMsg" class="error-msg"></div>
+                   <div style="color:red; font-size:12px; margin-top:5px;" id="timer">05:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+
+      <div id="dashboardSection" class="hidden">
+          <div class="top-util-bar">
+              <button class="btn-logout" onclick="logout()">로그아웃</button>
+          </div>
+
+          <div class="section-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px; font-weight:bold;">내 정보</span>
+                <button class="btn-sub" style="padding:4px 8px; font-size:11px;" onclick="refresh()">↻ 새로고침</button>
+              </div>
+              <span style="font-size:10px; color:#999;">(30분 미사용 시 자동 로그아웃)</span>
+            </div>
+            
+            <div class="summary-box">
+              <div id="birthdayBanner"></div>
+
+              <div class="summary-row"><span>이름</span><span id="sumName"></span></div>
+              <div class="summary-row"><span>번호</span><span id="sumId"></span></div>
+              <div class="summary-row"><span>이메일</span><span id="sumEmail"></span></div>
+              <div class="summary-row"><span>연락처</span><span id="sumPhone"></span></div>
+              <div class="summary-row"><span>주소</span><span id="sumAddr" style="max-width:200px; text-align:right;"></span></div>
+              <div class="summary-row" style="margin-top:10px; border-top:1px dashed #ddd; padding-top:5px;">
+                <span>배당 계좌</span><span id="sumAccount" style="color:#1967d2;"></span>
+              </div>
+            </div>
+            <button class="btn-sub" style="width:100%; border:1px solid var(--primary-color); color:var(--primary-color);" id="btnEditInfo" onclick="openEditModal()">내 정보 수정</button>
+            
+            <div class="summary-box" style="margin-top:15px; background:#e8f0fe; border-color:#d2e3fc;">
+              <div class="summary-row">
+                <span style="color:#1967d2;">납부 출자금</span>
+                <span id="sumTotal" style="color:#1967d2; font-size:16px;"></span>
+              </div>
+            </div>
+            <div class="summary-box" style="background:#fff; border:1px solid #eee;">
+              <div style="font-weight:bold; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">입금 내역</div>
+              <div id="depositList" style="font-size:13px; color:#555;"></div>
+            </div>
+          </div>
+
+          <div class="menu-grid">
+            <button class="menu-btn" onclick="toggleTab('extra', this)">추가 출자</button>
+            <button class="menu-btn" onclick="toggleTab('reduction', this)">감자 신청</button>
+            <button class="menu-btn" onclick="toggleTab('withdraw', this)">탈퇴 신청</button>
+            <button class="menu-btn" onclick="toggleTab('cert', this)" style="color:var(--primary-color);">🖨️ 증명서</button>
+          </div>
+
+          <div id="tabExtra" class="section-card hidden">
+            <h3>추가 출자 신청</h3>
+            <div class="notice-box">
+               💡 <b>입금자 식별</b>을 위해 작성하는 신청서입니다.<br>
+               출자금을 입금하셨다면 반드시 작성해 주세요!
+            </div>
+            
+            <div class="input-group"><label>약정금액 (1만원 단위)</label>
+              <input type="number" id="exAmount" step="10000" min="0" oninput="handleAmountInput(this, 'extra')">
+              <div id="exHint" style="font-size:12px; color:#666; margin-top:4px;"></div>
+            </div>
+            <div class="input-group">
+              <label>입금상태</label>
+              <div class="radio-group">
+                <label class="check-item"><input type="radio" name="exPaid" value="yes" checked onclick="toggleBankInfo(false)"> 입금완료</label>
+                <label class="check-item"><input type="radio" name="exPaid" value="no" onclick="toggleBankInfo(true)"> 나중에 입금</label>
+              </div>
+            </div>
+            <div id="bankInfoBox" class="hidden" style="background:#fff3e0; padding:10px; border-radius:5px; font-size:13px; color:#e65100; margin-bottom:15px;">
+              <b>[입금하실 곳]</b><br>계좌 개설 진행 중 (추후 문자 안내)
+            </div>
+            <div style="margin-bottom:15px;" class="check-item">
+              <input type="checkbox" id="exAgree"> <label for="exAgree" style="margin:0; font-weight:normal;">정관에 따라 추가 출자를 신청합니다.</label>
+            </div>
+            <button class="btn-main" onclick="submitExtra(this)">신청하기</button>
+          </div>
+
+          <div id="tabReduction" class="section-card hidden">
+            <h3>감자 신청</h3>
+            <div class="summary-box">가능액: <span id="redMax" style="color:red; font-weight:bold;"></span></div>
+            <div id="redList"></div>
+            <div style="background:#fff3e0; color:#e65100; padding:10px; border-radius:5px; font-size:13px; margin:10px 0;">※ 등록된 배당 계좌로 입금됩니다.</div>
+            <div class="input-group"><label>신청금액</label>
+              <input type="number" id="redAmount" step="10000" min="0" oninput="handleAmountInput(this, 'reduction')">
+              <div id="redHint" style="font-size:12px; color:#666; margin-top:4px;"></div>
+            </div>
+            <div style="margin-bottom:10px;" class="check-item">
+              <input type="checkbox" id="redAgree"> 
+              <label for="redAgree" style="margin:0; font-weight:normal; font-size:13px; color:#555;">감자는 다음년도 총회 승인 후 처리되며, 자산 상황에 따라 환급액이 조정될 수 있음을 확인합니다.</label>
+            </div>
+            <button class="btn-main" id="btnSubmitRed" onclick="submitReduction(this)">신청하기</button>
+          </div>
+
+          <div id="tabWithdraw" class="section-card hidden">
+            <h3>탈퇴 신청</h3>
+            <div id="wdList"></div>
+            <div style="background:#fff3e0; color:#e65100; padding:10px; border-radius:5px; font-size:13px; margin:10px 0;">※ 등록된 배당 계좌로 입금됩니다.</div>
+            <div class="input-group"><label>사유</label><textarea id="wdReason"></textarea></div>
+            <div style="margin-bottom:10px;" class="check-item">
+              <input type="checkbox" id="wdAgree"> 
+              <label for="wdAgree" style="margin:0; font-weight:normal; font-size:13px; color:#555;">탈퇴는 다음년도 총회 승인 후 처리되며, 자산 상황에 따라 환급액이 조정될 수 있음을 확인합니다.</label>
+            </div>
+            <button class="btn-main" onclick="submitWithdraw(this)">신청하기</button>
+          </div>
+
+          <div id="tabCert" class="section-card hidden">
+            <h3>증명서 발급 센터</h3>
+            
+            <div class="notice-box">
+               ⚠️ <b>출자 증서 발급 안내</b><br>
+               출자금 납부 후 사무처 확인 완료까지 <b>1~2영업일</b>이 소요될 수 있습니다.
+            </div>
+
+            <div style="background:#f1f8ff; padding:20px; border-radius:10px; margin:20px 0; border:1px solid #d2e3fc; text-align:center;">
+              <div style="font-size:16px; font-weight:bold; color:#1565c0; margin-bottom:5px;">📄 출자증서</div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+              <button class="btn-main" style="width:100%;" onclick="downloadCert(this)">
+                ⬇️ 다운로드
+              </button>
+            </div>
+          </div>
+          
+          <div class="footer-contact">
+             문의 : 사무국장 김민호 010-2513-5736 / yonginsolar@gmail.com
+          </div>
+      </div>
+    </div>
+
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <div style="position:absolute; top:15px; right:20px; font-size:24px; cursor:pointer;" onclick="document.getElementById('editModal').style.display='none'">×</div>
+        <h3 style="border-bottom:2px solid #4e8cff; padding-bottom:10px; color:#333;">정보 수정</h3>
+        
+        <label>주소 변경 (현재 주소: <span id="displayAddr" style="font-weight:normal; color:#666;"></span>)</label>
+        <div class="box-row" style="margin-bottom:5px;">
+           <input type="text" id="editPostcode" readonly style="width:80px;" placeholder="우편번호">
+           <button class="btn-sub" onclick="execPostcode()">주소 검색</button>
+        </div>
+        <input type="text" id="editRoad" readonly style="margin-bottom:5px;" placeholder="주소 검색을 눌러주세요">
+        <input type="text" id="editDetail" placeholder="상세주소 입력">
+
+        <label style="margin-top:15px;">연락처 변경</label>
+        <input type="text" id="editPhone" placeholder="" oninput="handlePhoneInput(this)">
+
+        <label style="margin-top:15px;">이메일 변경</label>
+        <div class="box-row">
+          <input type="email" id="editEmail" placeholder="" oninput="handleEmailChange()">
+          <button class="btn-sub" id="btnEditAuth" disabled onclick="reqEditAuth()">인증번호 받기</button>
+        </div>
+        <div id="editAuthBox" class="hidden" style="margin-top:5px;">
+           <div class="box-row">
+             <input type="text" id="editAuthCode" placeholder="인증번호" oninput="clearError('editAuthMsg')">
+             <button class="btn-main" style="width:60px;" onclick="verifyEditAuth()">확인</button>
+           </div>
+           <div id="editAuthMsg" class="error-msg"></div>
+        </div>
+        <input type="hidden" id="emailAuthDone" value="true">
+
+        <label style="margin-top:15px; padding-top:15px; border-top:1px dashed #ddd;">배당금 계좌 변경</label>
+        <select id="editBank" style="margin-bottom:5px;">
+           <option value="">은행선택</option>
+           <option value="농협">농협</option><option value="국민">국민</option><option value="신한">신한</option><option value="우리">우리</option>
+           <option value="하나">하나</option><option value="기업">기업</option><option value="카카오뱅크">카카오뱅크</option><option value="토스뱅크">토스뱅크</option>
+           <option value="새마을">새마을</option><option value="신협">신협</option><option value="우체국">우체국</option>
+        </select>
+        <input type="text" id="editAccount" placeholder="계좌번호 (숫자만)" oninput="handleNumberOnly(this)" onfocus="this.select()">
+        <div style="font-size:11px; color:#666; margin-top:2px; margin-bottom:5px;">※ 평생계좌(휴대폰번호)보다는 <b>실제 계좌번호</b> 입력을 권장합니다.</div>
+        <input type="text" id="editHolder" placeholder="예금주" style="margin-top:5px;" onfocus="this.select()">
+        
+        <button class="btn-main" style="margin-top:20px;" id="btnSaveInfo" onclick="saveInfo(this)">저장하기</button>
+      </div>
+    </div>
+
+    <div id="consentModal" class="modal">
+      <div class="modal-content">
+        <h3 style="color:#d32f2f; margin-top:0;">⚠️ 안내 및 동의</h3>
+        <div id="consentText" style="background:#fff3e0; padding:15px; border-radius:8px; font-size:14px; line-height:1.5; color:#333;">
+          </div>
+        <div class="check-item" style="margin-top:20px; padding:10px; border:1px solid #ddd; border-radius:8px;">
+          <input type="checkbox" id="modalAgreeCheck" onclick="document.getElementById('btnConsentConfirm').disabled = !this.checked">
+          <label for="modalAgreeCheck" style="margin:0; font-weight:bold;">네, 내용을 확인하였으며 이에 동의합니다.</label>
+        </div>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+           <button class="btn-sub" style="flex:1;" onclick="document.getElementById('consentModal').style.display='none'">취소</button>
+           <button class="btn-main" style="flex:1;" id="btnConsentConfirm" disabled>확인</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="alertModal" class="modal"><div class="modal-content" style="text-align:center;"><div id="alertMsg" style="margin-bottom:15px; white-space:pre-wrap;"></div><div id="alertBtns"><button class="btn-main" onclick="document.getElementById('alertModal').style.display='none'">확인</button></div></div></div>
+
+    <div id="centerModal" class="modal">
+      <div class="modal-content">
+        <div style="font-size:40px; margin-bottom:10px;">✋</div> 
+        <div id="centerMsg" style="margin-bottom:15px; white-space:pre-wrap; font-size:15px; color:#333; line-height:1.5;"></div>
+        <button type="button" class="btn-main" style="width:100%;" onclick="document.getElementById('centerModal').style.display='none'">확인</button>
+      </div>
+    </div>
+
+    <script>
+      // ⚠️ 여기에 배포한 앱스크립트 웹 앱 URL을 넣으세요!
+      const API_URL = "https://script.google.com/macros/s/AKfycbxORygvyjV_p1YGh0wFm4BkMbuWYxgyAuhRL1_3SCzLcOJb3JMZupIUSLZtZdTatWxZ/exec";
+
+      // [통신 헬퍼] 앱스크립트와 대화하는 함수
+      async function callApi(action, payload) {
+        try {
+          const response = await fetch(API_URL, {
+            method: "POST",
+            redirect: "follow",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(Object.assign({ action: action }, payload))
+          });
+          return await response.json();
+        } catch (error) {
+          console.error("API Error:", error);
+          throw new Error("서버 통신 중 오류가 발생했습니다.");
+        }
+      }
+
+      var curMem = null, curData = null, timer = null, canSend = true;
+      var currentAuthCode = "";
+      
+      var logoutTimer = null;
+      const LOGOUT_TIME = 30 * 60 * 1000; 
+
+      function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+      function clearError(id) { document.getElementById(id).innerText = ''; }
+
+      function showAlert(msg, callback) {
+        document.getElementById('centerMsg').innerHTML = msg.replace(/\n/g, '<br>');
+        var modal = document.getElementById('centerModal');
+        var btn = modal.querySelector('button');
+        btn.onclick = function() { modal.style.display='none'; if(callback) callback(); };
+        modal.style.display = 'flex';
+      }
+      
+      function showConfirm(msg, yesCallback) {
+        document.getElementById('alertMsg').innerHTML = msg.replace(/\n/g, '<br>');
+        var btnArea = document.getElementById('alertBtns');
+        btnArea.innerHTML = '';
+        var yes = document.createElement('button'); yes.className='btn-main'; yes.innerText='네'; yes.style.width='45%'; yes.style.marginRight='10px';
+        yes.onclick = function() { document.getElementById('alertModal').style.display='none'; yesCallback(); };
+        var no = document.createElement('button'); no.className='btn-sub'; no.innerText='아니오'; no.style.width='45%';
+        no.onclick = function() { document.getElementById('alertModal').style.display='none'; };
+        btnArea.appendChild(yes); btnArea.appendChild(no);
+        document.getElementById('alertModal').style.display = 'flex';
+      }
+
+      function resetLogoutTimer() {
+        if(document.getElementById('dashboardSection').classList.contains('hidden')) return;
+        
+        clearTimeout(logoutTimer);
+        logoutTimer = setTimeout(function() {
+           showAlert("장시간(30분) 미사용으로\n자동 로그아웃 되었습니다.", function(){
+              location.reload();
+           });
+        }, LOGOUT_TIME);
+      }
+
+      window.onload = function() {
+        document.body.addEventListener('mousemove', resetLogoutTimer);
+        document.body.addEventListener('mousedown', resetLogoutTimer);
+        document.body.addEventListener('keypress', resetLogoutTimer);
+        document.body.addEventListener('touchmove', resetLogoutTimer);
+      };
+
+      function handleMemberIdInput(el) {
+        var v = el.value.replace(/[^0-9]/g, '');
+        if (v.length > 4 && v.length <= 6) { v = v.slice(0,4) + '-' + v.slice(4); } 
+        else if (v.length > 6) { v = v.slice(0,4) + '-' + v.slice(4,6) + '-' + v.slice(6,10); }
+        el.value = v;
+      }
+
+      function handlePhoneInput(el) {
+        var v = el.value.replace(/[^0-9]/g, '');
+        if (v.startsWith('02')) { 
+             if(v.length > 2 && v.length <= 5) v = v.slice(0,2)+'-'+v.slice(2);
+             else if(v.length > 5 && v.length <= 9) v = v.slice(0,2)+'-'+v.slice(2,5)+'-'+v.slice(5,9);
+             else if(v.length > 9) v = v.slice(0,2)+'-'+v.slice(2,6)+'-'+v.slice(6,10);
+        } else {
+             if(v.length > 3 && v.length <= 7) v = v.slice(0,3)+'-'+v.slice(3);
+             else if(v.length > 7) {
+                 if(v.length === 11) v = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11); 
+                 else if(v.length === 10) v = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6,10);
+                 else v = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7); 
+             }
+        }
+        el.value = v;
+      }
+
+      function handleNumberOnly(el) { el.value = el.value.replace(/[^0-9]/g, ''); }
+      
+      function handleAmountInput(el, type) {
+        el.value = el.value.replace(/[^0-9]/g, ''); 
+        var v = Number(el.value);
+        var hintId = el.id === 'exAmount' ? 'exHint' : 'redHint';
+        var hintText = (v>=10000)?v.toLocaleString()+'원':'';
+        
+        if(type === 'reduction') {
+           var max = curData.reduction.maxAdditional || 0;
+           var btn = document.getElementById('btnSubmitRed');
+           
+           if(v > max) {
+              hintText = "⚠️ 가능 금액 초과 (" + max.toLocaleString() + "원 까지)";
+              document.getElementById(hintId).style.color = "red";
+              btn.disabled = true;
+           } else {
+              document.getElementById(hintId).style.color = "#666";
+              btn.disabled = false;
+              if(v >= 10000) hintText = v.toLocaleString() + '원';
+           }
+        }
+        document.getElementById(hintId).textContent = hintText;
+      }
+      function toggleBankInfo(show) { document.getElementById('bankInfoBox').style.display = show ? 'block' : 'none'; }
+
+      // [변경] fetch 조회
+      function handleSearch() {
+        var id = document.getElementById('memberIdInput').value;
+        if(!id) return showAlert('번호를 입력하세요');
+        showLoading(true);
+        
+        callApi('getMemberForManage', { id: id })
+          .then(res => {
+            showLoading(false);
+            if(!res.success) return showAlert(res.message);
+            curMem = res.member;
+            document.getElementById('emailAuthArea').classList.remove('hidden');
+            document.getElementById('emailDisplay').value = curMem.email;
+            document.getElementById('authCode').value = '';
+            clearError('loginAuthMsg');
+          })
+          .catch(err => {
+            showLoading(false);
+            showAlert('오류: ' + err.message);
+          });
+      }
+
+      // [변경] fetch 인증번호 요청
+      function requestAuth() {
+        if(!canSend) { showAlert('잠시 후 다시 시도해주세요.'); return; }
+        
+        showLoading(true); 
+        canSend = false; 
+        setTimeout(()=>{canSend=true;}, 3000);
+
+        callApi('sendExtraEmailAuth', { id: curMem.id })
+          .then(res => {
+            showLoading(false); 
+            if(res.result === 'SENT') {
+              document.getElementById('authInputBox').classList.remove('hidden');
+              startTimer(300);
+              document.getElementById('authCode').focus();
+              showAlert('인증번호가 메일로 발송되었습니다.');
+            } else if (res.result === 'NOT_FOUND') {
+              showAlert('해당 번호의 조합원을 찾을 수 없습니다.');
+            } else {
+              showAlert('발송 실패: ' + res.result);
+            }
+          })
+          .catch(err => {
+             showLoading(false); 
+             showAlert('시스템 오류가 발생했습니다.\n내용: ' + err.message);
+          });
+      }
+
+      function startTimer(sec) {
+        clearInterval(timer);
+        var t = sec;
+        timer = setInterval(function() {
+          var m = parseInt(t/60), s = t%60;
+          document.getElementById('timer').textContent = m + ":" + (s<10?"0"+s:s);
+          if(--t < 0) clearInterval(timer);
+        }, 1000);
+      }
+
+      function handleAuthEnter(e) {
+        if(e.key === 'Enter') {
+           var alertDisplay = document.getElementById('alertModal').style.display;
+           var centerDisplay = document.getElementById('centerModal').style.display;
+           if(alertDisplay !== 'flex' && alertDisplay !== 'block' && centerDisplay !== 'flex') {
+             verifyAuth();
+           }
+        }
+      }
+
+      // [변경] fetch 인증번호 확인 및 데이터 로드
+      function verifyAuth() {
+        var codeEl = document.getElementById('authCode');
+        var btnEl = document.querySelector('#authInputBox .btn-main'); 
+        var msgEl = document.getElementById('loginAuthMsg');
+        
+        var code = codeEl.value;
+        msgEl.innerText = ''; 
+        
+        if(code.length < 6) { msgEl.innerText = '인증번호 6자리를 입력해주세요.'; return; }
+        
+        codeEl.disabled = true;
+        btnEl.disabled = true;
+        btnEl.innerText = '확인중';
+        
+        currentAuthCode = code;
+        
+        showLoading(true);
+        callApi('verifyAuthAndLoadData', { id: curMem.id, email: curMem.email, code: code })
+          .then(res => {
+            showLoading(false);
+            
+            if(res.success) {
+                msgEl.innerText = '';
+                curData = res;
+                curMem.email = res.realEmail;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                renderDash();
+                resetLogoutTimer();
+            } else {
+                codeEl.disabled = false;
+                btnEl.disabled = false;
+                btnEl.innerText = '확인';
+                codeEl.focus();
+
+                if (res.message.includes("만료")) { 
+                   msgEl.innerText = '인증 시간이 만료되었습니다.';
+                } else if (res.message.includes("FAIL")) {
+                   msgEl.innerText = '인증번호가 일치하지 않습니다.';
+                } else {
+                   msgEl.innerText = '❌ 5회 오류로 잠시 차단되었습니다.';
+                   showAlert("인증번호를 5회 이상 틀려 보안을 위해 10분간 인증이 제한됩니다.");
+                }
+            }
+          })
+          .catch(err => {
+            showLoading(false);
+            codeEl.disabled = false;
+            btnEl.disabled = false;
+            btnEl.innerText = '확인';
+            showAlert("오류: " + err.message);
+          });
+      }
+
+      function logout() { showConfirm("로그아웃 하시겠습니까?", function() { location.reload(); }); }
+
+      function renderDash() {
+        var today = new Date();
+        var todayStr = String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+        var birthMd = (curData.birthDate && curData.birthDate.length >= 4) ? curData.birthDate.substring(2,6) : "";
+        
+        if(birthMd && birthMd === todayStr) {
+           var banner = document.getElementById('birthdayBanner');
+           banner.innerHTML = "🎉 <b>생일 축하드려요!</b><br>햇빛처럼 빛나는 하루 되세요 🎂";
+           banner.style.display = 'block';
+        } else {
+           document.getElementById('birthdayBanner').style.display = 'none';
+        }
+
+        document.getElementById('sumName').textContent = curMem.name;
+        document.getElementById('sumId').textContent = curMem.id;
+        document.getElementById('sumEmail').textContent = curMem.email;
+        document.getElementById('sumAddr').textContent = curData.address || '(미등록)';
+        document.getElementById('sumPhone').textContent = curData.phone || '-';
+        
+        var hasAcc = curData.bankName && curData.accountNo;
+        document.getElementById('sumAccount').textContent = hasAcc ? curData.bankName + " ******" + curData.accountNo.slice(-4) : "(미등록)";
+        document.getElementById('btnEditInfo').textContent = hasAcc ? "내 정보 수정" : "내 정보 수정 / 계좌 등록";
+        document.getElementById('sumTotal').textContent = (curData.totalPaid||0).toLocaleString() + "원";
+
+        var dHtml = "<table style='width:100%; font-size:13px; border-collapse:collapse;'>";
+        if(curData.deposits.length > 0) {
+           curData.deposits.forEach(d => { dHtml += `<tr style='border-bottom:1px solid #eee;'><td style='padding:5px;'>${d.date}</td><td style='text-align:right;'>${d.amount.toLocaleString()}원</td></tr>`; });
+        } else { dHtml += "<tr><td style='padding:10px; text-align:center;'>내역 없음</td></tr>"; }
+        dHtml += "</table>";
+        document.getElementById('depositList').innerHTML = dHtml;
+        
+        document.getElementById('redMax').textContent = (curData.reduction.maxAdditional||0).toLocaleString() + "원";
+        renderList('redList', curData.reduction.entries, 'cancelReduction');
+        renderList('wdList', curData.withdrawal.entries, 'cancelWithdrawal');
+      }
+
+      function renderList(id, list, funcName) {
+        var h = "";
+        list.forEach(i => {
+           h += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;">
+                  <span>${i.createdAt} ${i.amount?i.amount.toLocaleString()+'원': (i.reason || '')}</span>
+                  <button class="btn-sub" style="padding:2px 5px;" onclick="${funcName}(${i.rowIndex})" >취소</button>
+                 </div>`;
+        });
+        document.getElementById(id).innerHTML = h;
+      }
+
+      function toggleTab(type, btn) {
+        var target = document.getElementById('tab' + type.charAt(0).toUpperCase() + type.slice(1));
+        var isHidden = target.classList.contains('hidden');
+        ['tabExtra','tabReduction','tabWithdraw','tabCert'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+        if(isHidden) { target.classList.remove('hidden'); btn.classList.add('active'); }
+      }
+
+      function openEditModal() {
+        document.getElementById('editModal').style.display = 'flex';
+        
+        document.getElementById('displayAddr').textContent = curData.address || '없음';
+        document.getElementById('editPostcode').value = ''; 
+        document.getElementById('editRoad').value = ''; 
+        document.getElementById('editDetail').value = ''; 
+
+        setPlaceholder('editPhone', curData.phone);
+        setPlaceholder('editEmail', curMem.email);
+        setPlaceholder('editAccount', curData.accountNo);
+        setPlaceholder('editHolder', curData.accountHolder || curMem.name);
+        
+        document.getElementById('editBank').value = curData.bankName || '';
+        
+        document.getElementById('emailAuthDone').value = 'true';
+        document.getElementById('editAuthBox').classList.add('hidden');
+        document.getElementById('btnEditAuth').disabled = true;
+        document.getElementById('btnSaveInfo').disabled = false;
+        clearError('editAuthMsg');
+      }
+
+      function setPlaceholder(id, val) {
+         var el = document.getElementById(id);
+         el.value = ''; 
+         el.placeholder = val ? val : '입력해주세요'; 
+      }
+
+      function handleEmailChange() {
+        var now = document.getElementById('editEmail').value;
+        var original = curMem.email;
+        
+        if(now && now !== original) {
+           document.getElementById('emailAuthDone').value = 'false';
+           document.getElementById('btnEditAuth').disabled = false;
+           document.getElementById('btnSaveInfo').disabled = true;
+        } else {
+           document.getElementById('emailAuthDone').value = 'true';
+           document.getElementById('btnEditAuth').disabled = true;
+           document.getElementById('editAuthBox').classList.add('hidden');
+           document.getElementById('btnSaveInfo').disabled = false;
+        }
+      }
+
+      // [변경] fetch 이메일 변경 인증
+      function reqEditAuth() {
+         var em = document.getElementById('editEmail').value;
+         if(!canSend) { showAlert('잠시 후 다시 시도해주세요.'); return; }
+         showLoading(true); canSend=false; setTimeout(()=>{canSend=true;},3000);
+         
+         callApi('sendEditEmailAuth', { email: em, name: curMem.name })
+           .then(res => {
+             showLoading(false);
+             if(res.result === 'SENT') {
+                document.getElementById('editAuthBox').classList.remove('hidden');
+                var msgEl = document.getElementById('editAuthMsg');
+                msgEl.innerText = '인증번호가 발송되었습니다.';
+                msgEl.style.color = 'blue';
+             } else showAlert(res.result);
+           })
+           .catch(err => {
+             showLoading(false);
+             showAlert("오류: " + err.message);
+           });
+      }
+
+      // [변경] fetch 이메일 변경 인증 확인
+      function verifyEditAuth() {
+         var c = document.getElementById('editAuthCode').value;
+         var msgEl = document.getElementById('editAuthMsg');
+         msgEl.innerText = '';
+         if(c.length < 6) { msgEl.innerText='번호를 입력하세요'; return; }
+         
+         callApi('verifyEmailAuth', { email: document.getElementById('editEmail').value, code: c })
+           .then(res => {
+             if(res.result === 'OK') {
+                document.getElementById('emailAuthDone').value = 'true';
+                document.getElementById('btnSaveInfo').disabled = false;
+                msgEl.innerText = '✅ 인증되었습니다.';
+                msgEl.style.color = 'green';
+             } else {
+                msgEl.innerText = '인증번호 오류';
+                msgEl.style.color = 'red';
+             }
+           })
+           .catch(err => {
+             msgEl.innerText = "오류 발생";
+           });
+      }
+
+      // [변경] fetch 정보 저장
+      function saveInfo(btn) {
+         if(btn) btn.disabled = true; 
+         showLoading(true);
+         
+         var phoneVal = document.getElementById('editPhone').value.replace(/[^0-9]/g, '');
+         if(phoneVal && phoneVal.length < 10) {
+             showLoading(false);
+             btn.disabled = false;
+             return showAlert('전화번호 형식이 올바르지 않습니다.\n전체 번호를 확인해주세요.');
+         }
+
+         var p = document.getElementById('editPostcode').value;
+         var r = document.getElementById('editRoad').value;
+         var d = document.getElementById('editDetail').value;
+         var fullAddr = (p && r) ? `(${p}) ${r} ${d}` : ''; 
+
+         var data = {
+           memberId: curMem.id, 
+           address: fullAddr,
+           phone: document.getElementById('editPhone').value,
+           email: document.getElementById('editEmail').value,
+           bankName: document.getElementById('editBank').value,
+           accountNo: document.getElementById('editAccount').value,
+           accountHolder: document.getElementById('editHolder').value
+         };
+         
+         callApi('updateMemberData', { data: data, email: curMem.email, code: currentAuthCode })
+           .then(res => {
+             showLoading(false);
+             if(btn) btn.disabled = false;
+             if(res.success) {
+                showAlert('저장되었습니다.', () => {
+                  document.getElementById('editModal').style.display = 'none';
+                  if(data.email) curMem.email = data.email; 
+                  refresh(); 
+                });
+             } else showAlert('저장 실패: '+res.message);
+           })
+           .catch(err => {
+             showLoading(false);
+             if(btn) btn.disabled = false;
+             showAlert("오류: " + err.message);
+           });
+      }
+
+      function execPostcode() {
+        new daum.Postcode({
+           oncomplete: function(data) {
+              var addr = data.roadAddress;
+              if(data.buildingName) addr += " ("+data.buildingName+")";
+              document.getElementById('editPostcode').value = data.zonecode;
+              document.getElementById('editRoad').value = addr;
+              document.getElementById('editDetail').focus();
+              document.getElementById('layer').style.display = 'none';
+           }, width:'100%', height:'100%'
+        }).embed(document.getElementById('layer'));
+        document.getElementById('layer').style.display = 'block';
+      }
+
+      function checkAccountBeforeAction() {
+        if(!curData.bankName || !curData.accountNo) {
+           showConfirm("환불 계좌가 등록되지 않았습니다.\n계좌 등록 화면으로 이동하시겠습니까?", () => { openEditModal(); });
+           return false;
+        }
+        return true;
+      }
+
+      function openConsentModal(type, callback) {
+        var text = "";
+        if(type === 'reduction') {
+          text = "<b>[감자 신청 동의]</b><br><br>감자는 다음년도 총회 승인 후 처리되며, 자산 상황에 따라 환급액이 조정될 수 있음을 확인합니다.";
+        } else if(type === 'withdraw') {
+          text = "<b>[탈퇴 신청 동의]</b><br><br>탈퇴는 다음년도 총회 승인 후 처리되며, 자산 상황에 따라 환급액이 조정될 수 있음을 확인합니다.";
+        }
+        document.getElementById('consentText').innerHTML = text;
+        document.getElementById('modalAgreeCheck').checked = false;
+        document.getElementById('btnConsentConfirm').disabled = true;
+        document.getElementById('consentModal').style.display = 'flex';
+        
+        document.getElementById('btnConsentConfirm').onclick = function() {
+           document.getElementById('consentModal').style.display = 'none';
+           callback(); 
+        };
+      }
+
+      function submitExtra(btn) {
+         var amt = document.getElementById('exAmount').value;
+         if(!amt || amt < 10000 || amt%10000!==0) return showAlert('1좌(10,000원) 이상 가능합니다.');
+         if(!document.getElementById('exAgree').checked) return showAlert('동의가 필요합니다.');
+         
+         if(btn) btn.disabled = true;
+         var d = { memberId: curMem.id, memberName: curMem.name, amount: amt, status: document.querySelector('input[name="exPaid"]:checked').value === 'yes' ? '입금완료' : '입금예정' };
+         showLoading(true);
+         
+         callApi('saveContribution', { data: d, email: curMem.email, code: currentAuthCode })
+           .then(r => { 
+              showLoading(false); 
+              if(btn) btn.disabled = false; 
+              if(r.success){showAlert('완료'); refresh();} else showAlert(r.message); 
+           })
+           .catch(err => {
+              showLoading(false);
+              if(btn) btn.disabled = false;
+              showAlert("오류: " + err.message);
+           });
+      }
+
+      function submitReduction(btn) {
+         if(!checkAccountBeforeAction()) return;
+         
+         var runSubmit = function() {
+             var amt = document.getElementById('redAmount').value;
+             var max = curData.reduction.maxAdditional || 0;
+             if(!amt || amt <= 0) return showAlert('금액을 입력하세요.');
+             if(Number(amt) > max) return showAlert('감자 가능 금액이 부족합니다.\n(최대 '+max.toLocaleString()+'원)');
+             
+             if(btn) btn.disabled = true;
+             var d = { memberId: curMem.id, memberName: curMem.name, reductionAmount: amt };
+             showLoading(true);
+             
+             callApi('saveReduction', { data: d, email: curMem.email, code: currentAuthCode })
+               .then(r => { 
+                  showLoading(false); 
+                  if(btn) btn.disabled = false;
+                  if(r.success){showAlert('감자 신청이 완료되었습니다.'); refresh();} else showAlert(r.message); 
+               })
+               .catch(err => {
+                  showLoading(false);
+                  if(btn) btn.disabled = false;
+                  showAlert("오류: " + err.message);
+               });
+         };
+
+         if(document.getElementById('redAgree').checked) { runSubmit(); } 
+         else { openConsentModal('reduction', function() { document.getElementById('redAgree').checked = true; runSubmit(); }); }
+      }
+
+      function submitWithdraw(btn) {
+         if(!checkAccountBeforeAction()) return;
+         
+         var runSubmit = function() {
+             if(btn) btn.disabled = true;
+             var d = { memberId: curMem.id, memberName: curMem.name, reason: document.getElementById('wdReason').value };
+             showLoading(true);
+             
+             callApi('saveWithdrawal', { data: d, email: curMem.email, code: currentAuthCode })
+               .then(r => { 
+                  showLoading(false);
+                  if(btn) btn.disabled = false;
+                  if(r.success){showAlert('탈퇴 신청이 완료되었습니다.'); refresh();} else showAlert(r.message); 
+               })
+               .catch(err => {
+                  showLoading(false);
+                  if(btn) btn.disabled = false;
+                  showAlert("오류: " + err.message);
+               });
+         };
+
+         if(document.getElementById('wdAgree').checked) { runSubmit(); } 
+         else { openConsentModal('withdraw', function() { document.getElementById('wdAgree').checked = true; runSubmit(); }); }
+      }
+
+      function cancelReduction(rowIndex) { 
+          showConfirm("취소 신청은 되돌릴 수 없습니다.\n신청하시겠습니까?", function() {
+              showLoading(true); 
+              callApi('cancelReduction', { rowIndex: rowIndex, email: curMem.email, code: currentAuthCode })
+                .then(r => { 
+                   showLoading(false); 
+                   if(r.success) showAlert('취소되었습니다.');
+                   refresh(); 
+                })
+                .catch(err => showAlert("오류: " + err.message));
+          });
+      }
+      
+      function cancelWithdrawal(rowIndex) { 
+          showConfirm("취소 신청은 되돌릴 수 없습니다.\n신청하시겠습니까?", function() {
+              showLoading(true); 
+              callApi('cancelWithdrawal', { rowIndex: rowIndex, email: curMem.email, code: currentAuthCode })
+                .then(r => { 
+                   showLoading(false); 
+                   if(r.success) showAlert('취소되었습니다.');
+                   refresh(); 
+                })
+                .catch(err => showAlert("오류: " + err.message));
+          });
+      }
+      
+      // [변경] fetch 증명서 다운로드 (Base64 -> PDF)
+      function downloadCert(btn) {
+          if(!currentAuthCode) { showAlert('세션이 만료되었습니다.'); return; }
+          if(btn) btn.disabled = true; 
+          
+          showLoading(true); 
+          
+          var timeout = setTimeout(function() {
+              showLoading(false);
+              if(btn) btn.disabled = false;
+              showAlert("응답 시간이 초과되었습니다.\n잠시 후 다시 시도해주세요.");
+          }, 30000);
+
+          callApi('downloadCertPdf', { id: curMem.id, email: curMem.email, code: currentAuthCode })
+            .then(res => {
+                clearTimeout(timeout); 
+                showLoading(false);
+                if(btn) btn.disabled = false;
+                
+                if (res.success) {
+                   try {
+                       var binaryString = window.atob(res.base64);
+                       var len = binaryString.length;
+                       var bytes = new Uint8Array(len);
+                       for (var i = 0; i < len; i++) {
+                           bytes[i] = binaryString.charCodeAt(i);
+                       }
+                       var blob = new Blob([bytes], {type: "application/pdf"});
+                       
+                       var link = document.createElement('a');
+                       link.href = window.URL.createObjectURL(blob);
+                       link.download = res.fileName;
+                       document.body.appendChild(link); 
+                       link.click();
+                       document.body.removeChild(link); 
+                       
+                       showAlert("다운로드가 완료되었습니다.\n(파일이 열리지 않으면 팝업 차단을 확인해주세요)");
+                   } catch (e) {
+                       console.error(e);
+                       showAlert("파일 변환 중 오류가 발생했습니다.");
+                   }
+                } else {
+                   showAlert(res.message);
+                }
+            })
+            .catch(err => {
+                clearTimeout(timeout);
+                showLoading(false);
+                if(btn) btn.disabled = false;
+                showAlert("시스템 오류: " + err.message);
+            });
+      }
+
+      function refresh() { 
+          if(!currentAuthCode) { showAlert('세션이 만료되었습니다. 다시 조회해주세요.', function(){ location.reload(); }); return; }
+          showLoading(true);
+          callApi('verifyAuthAndLoadData', { id: curMem.id, email: curMem.email, code: currentAuthCode })
+            .then(r => {
+                showLoading(false); 
+                curData=r; 
+                renderDash(); 
+                resetLogoutTimer(); 
+            })
+            .catch(err => {
+                showLoading(false);
+                showAlert("갱신 오류: " + err.message);
+            });
+      }
+    </script>
+    <script>
+      console.log("%c 용인모두의햇빛협동조합 %c System Ready ", "background: #006837; color: #ffffff; padding: 5px; border-radius: 4px; font-weight: bold;", "background: #333; color: #fff; padding: 5px; border-radius: 4px;");
+    </script>
+  </body>
+</html>
