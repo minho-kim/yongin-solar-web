@@ -96,14 +96,17 @@
 
         <div id="individualField">
           <div class="input-group"><label class="required">이름</label><input type="text" id="userName" name="userName" placeholder="실명을 입력해주세요" required oninput="syncAccountHolder()"></div>
-          <div class="input-group"><label class="required">주민등록번호</label>
-            <div class="split-box">
-              <input type="text" id="rrn1" name="rrn1" maxlength="6" placeholder="앞 6자리" style="flex:1;" oninput="handleNumberOnly(this); autoMove(this, 'rrn2', 6); checkAgeLimit();" required>
-              <span class="dash">-</span>
-              <input type="password" id="rrn2" name="rrn2" maxlength="7" placeholder="뒤 7자리" style="flex:1;" oninput="handleNumberOnly(this); checkAgeLimit();" onblur="checkRRNOnBlur()" required>
-            </div>
-            <div id="rrnError" class="field-error"></div>
-          </div>
+<div class="input-group"><label class="required">주민등록번호</label>
+  <div class="split-box">
+    <input type="text" id="rrn1" name="rrn1" maxlength="6" placeholder="앞 6자리" style="flex:1;" 
+           oninput="handleNumberOnly(this); autoMove(this, 'rrn2', 6); checkAgeLimit(); document.getElementById('rrnError').textContent='';" required>
+    <span class="dash">-</span>
+    <input type="password" id="rrn2" name="rrn2" maxlength="7" placeholder="뒤 7자리" style="flex:1;" 
+           oninput="handleNumberOnly(this); checkAgeLimit(); document.getElementById('rrnError').textContent='';" 
+           onblur="checkRRNOnBlur()" required>
+  </div>
+  <div id="rrnError" class="field-error"></div>
+</div>
         </div>
 
         <div id="orgField" style="display:none;">
@@ -485,50 +488,102 @@
           document.getElementById('btnEmailReq').disabled = false;
       }
 
-      function handleSnsParams() {
-         const params = new URLSearchParams(window.location.search);
-         if (params.get('isSns') !== 'true') return;
+// [SNS 연동 및 데이터 자동 채움 로직]
+function handleSnsParams() {
+    const params = new URLSearchParams(window.location.search);
+    
+    // 1. SNS 로그인이 아니면 아무것도 하지 않고 종료
+    if (params.get('isSns') !== 'true') return;
 
-         const form = document.getElementById('joinForm');
-         const addHidden = (name, val) => { let input = document.createElement('input'); input.type = 'hidden'; input.name = name; input.value = val; form.appendChild(input); };
-         addHidden('snsType', params.get('snsType'));
-         addHidden('snsId', params.get('snsId'));
+    console.log("SNS Login Detected");
 
-         // 단체 가입 막기
-         document.querySelectorAll('input[name="userType"]')[1].disabled = true;
-         document.querySelectorAll('.radio-label')[1].style.opacity = "0.5";
+    const form = document.getElementById('joinForm');
 
-         const name = params.get('name');
-         if (name && name !== 'undefined') { document.getElementById('userName').value = name; syncAccountHolder(); }
+    // 2. 히든 필드 생성 (snsType, snsId를 서버로 넘기기 위함)
+    const addHidden = (name, val) => {
+        let input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = val;
+        form.appendChild(input);
+    };
+    addHidden('snsType', params.get('snsType'));
+    addHidden('snsId', params.get('snsId'));
 
-         const email = params.get('email');
-         if (email && email !== 'undefined') {
-             const emailInput = document.getElementById('email');
-             emailInput.value = email;
-             emailInput.readOnly = true;
-             emailInput.style.backgroundColor = "#e8f0fe";
-             originalEmail = email;
-             // [확인] 이메일 있을 때 수정 버튼 활성화
-             document.getElementById('btnEmailReq').style.display = 'none';
-             document.getElementById('btnEmailEdit').style.display = 'block';
-             document.getElementById('isEmailVerified').value = 'true';
-             const authBox = document.getElementById('authBox');
-             authBox.insertAdjacentHTML('afterend', '<div style="color:blue; font-size:12px; margin-top:5px; font-weight:bold;">✅ SNS 계정으로 인증되었습니다.</div>');
-         }
+    // 3. 단체 가입 막기 (개인 회원으로 강제 고정)
+    // 두 번째 라디오 버튼(단체)을 비활성화하고 흐리게 처리
+    const radioInputs = document.querySelectorAll('input[name="userType"]');
+    const radioLabels = document.querySelectorAll('.radio-label');
+    if (radioInputs[1]) radioInputs[1].disabled = true;
+    if (radioLabels[1]) {
+        radioLabels[1].style.opacity = "0.5";
+        radioLabels[1].title = "SNS 간편 가입은 개인 회원만 가능합니다.";
+    }
 
-         const phone = params.get('phone');
-         if (phone && phone !== 'undefined' && phone.includes('-')) {
-             const parts = phone.split('-');
-             if (parts.length === 3) {
-                 document.getElementById('p1').value = parts[0]; document.getElementById('p2').value = parts[1]; document.getElementById('p3').value = parts[2];
-                 // [확인] 전화번호 읽기 전용 처리
-                 document.getElementById('p1').readOnly = true; document.getElementById('p1').style.backgroundColor = "#e8f0fe";
-                 document.getElementById('p2').readOnly = true; document.getElementById('p2').style.backgroundColor = "#e8f0fe";
-                 document.getElementById('p3').readOnly = true; document.getElementById('p3').style.backgroundColor = "#e8f0fe";
-                 syncAccountHolder();
-             }
-         }
-      }
+    // 4. 이름 채우기
+    const name = params.get('name');
+    if (name && name !== 'undefined') {
+        document.getElementById('userName').value = name;
+        syncAccountHolder(); // 예금주 입력칸도 같이 동기화
+    }
+
+    // 5. 이메일 채우기 & UI 변경
+    const email = params.get('email');
+    if (email && email !== 'undefined') {
+        const emailInput = document.getElementById('email');
+        emailInput.value = email;
+        
+        // 수정 불가능하게 막고 회색 배경 처리
+        emailInput.readOnly = true;
+        emailInput.style.backgroundColor = "#e8f0fe";
+        
+        // [중요] 원본 이메일 저장 (나중에 수정 여부 판단용)
+        originalEmail = email;
+
+        // 버튼 교체: [인증] 숨김 -> [수정] 보임
+        document.getElementById('btnEmailReq').style.display = 'none';
+        document.getElementById('btnEmailEdit').style.display = 'block';
+
+        // 인증 완료 상태로 설정
+        document.getElementById('isEmailVerified').value = 'true';
+        
+        // 안내 메시지 추가
+        const authBox = document.getElementById('authBox');
+        authBox.insertAdjacentHTML('afterend', '<div style="color:blue; font-size:12px; margin-top:5px; font-weight:bold;">✅ SNS 계정으로 인증되었습니다.</div>');
+    }
+
+    // 6. 전화번호 채우기 & 잠금
+    const phone = params.get('phone');
+    if (phone && phone !== 'undefined' && phone.includes('-')) {
+        const parts = phone.split('-');
+        if (parts.length === 3) {
+            const p1 = document.getElementById('p1');
+            const p2 = document.getElementById('p2');
+            const p3 = document.getElementById('p3');
+
+            p1.value = parts[0];
+            p2.value = parts[1];
+            p3.value = parts[2];
+
+            // 전화번호 수정 절대 불가 (회색 처리)
+            p1.readOnly = true; p1.style.backgroundColor = "#e8f0fe";
+            p2.readOnly = true; p2.style.backgroundColor = "#e8f0fe";
+            p3.readOnly = true; p3.style.backgroundColor = "#e8f0fe";
+            
+            syncAccountHolder();
+        }
+    } else {
+        // 전화번호가 없는 경우 포커스만 이동
+        document.getElementById('p2').placeholder = "필수";
+        document.getElementById('p3').placeholder = "입력";
+        setTimeout(() => document.getElementById('p2').focus(), 500);
+    }
+
+    // 7. [핵심] 주소창 청소 (새로고침 시 에러 방지)
+    // URL에서 ?isSns=... 부분을 삭제하여, 사용자가 새로고침 해도 SNS 토큰 재사용 에러가 안 나게 함
+    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+}
       handleSnsParams();
     </script>
   </body>
