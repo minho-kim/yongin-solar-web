@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <style>
-      /* CSS는 기존과 동일하게 유지 */
+      /* 스타일은 보내주신 것과 100% 동일 */
       :root { --primary-color: #4e8cff; --bg-color: #f0f7ff; --card-bg: #ffffff; }
       body { font-family: 'Apple SD Gothic Neo', sans-serif; background-color: var(--bg-color); padding: 20px; display: flex; justify-content: center; margin: 0; color: #333; }
       .container { width: 100%; max-width: 500px; box-sizing: border-box; }
@@ -219,16 +219,16 @@
     </div>
 
     <script>
-      // ⚠️ 여기에 배포한 앱스크립트 웹 앱 URL을 넣으세요! (예: https://script.google.com/macros/s/..../exec)
+      // ⚠️ 배포된 앱스크립트 주소 (변경 금지 / 혹시 바뀌면 수정 필요)
       const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
 
-      // [통신 헬퍼] 앱스크립트와 대화하는 함수 (fetch 사용)
+      // [통신 헬퍼]
       async function callApi(action, payload) {
         try {
           const response = await fetch(API_URL, {
             method: "POST",
             redirect: "follow",
-            headers: { "Content-Type": "text/plain;charset=utf-8" }, // GAS CORS 이슈 방지용
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(Object.assign({ action: action }, payload))
           });
           return await response.json();
@@ -315,11 +315,9 @@
          }
       }
 
-      // [변경] fetch로 중복 확인 (단체)
       function checkOrgNoDuplicateServer(valStr) {
          if(!valStr) return;
          var formatted = valStr.substring(0,3)+"-"+valStr.substring(3,5)+"-"+valStr.substring(5);
-         
          callApi('checkDuplicate', { type: 'orgNo', value: formatted })
            .then(res => {
              if(res.result === 'DUPLICATE') document.getElementById('orgNoError').textContent='이미 가입된 번호입니다.'; 
@@ -375,7 +373,6 @@
       }
       function handleAccountInput(el) { el.value = el.value.replace(/[^0-9]/g,''); }
 
-      // [변경] fetch로 계좌 중복 확인
       function checkAccountDuplicateServer() {
         var val = document.getElementById('accountNo').value;
         if(!val) return;
@@ -386,7 +383,6 @@
           .catch(err => console.error(err));
       }
 
-      // [변경] fetch로 주민번호 중복 확인
       function checkRRNOnBlur() { 
          var rrn = document.getElementById('rrn1').value + document.getElementById('rrn2').value;
          if(rrn.length >= 7) {
@@ -398,11 +394,9 @@
          }
       }
 
-      // [변경] fetch로 전화번호 중복 확인
        function checkPhoneDuplicateServer() {
          var userType = document.querySelector('input[name="userType"]:checked').value;
          if (userType === '단체') return;
-
          var p = document.getElementById('p1').value+"-"+document.getElementById('p2').value+"-"+document.getElementById('p3').value;
          
          callApi('checkDuplicate', { type: 'phone', value: p })
@@ -458,7 +452,6 @@
         }, 1000);
       }
 
-      // [변경] fetch로 이메일 인증 요청
       function reqEmailAuth() {
         var em = document.getElementById('email').value;
         var btn = document.getElementById('btnEmailReq'); 
@@ -490,7 +483,6 @@
           });
       }
       
-      // [변경] fetch로 인증번호 확인
       function handleAuthCodeInput() {
          var el = document.getElementById('authCode');
          var val = el.value;
@@ -532,7 +524,6 @@
          document.getElementById('moneyHint').textContent = (v>=100000 && v%10000===0) ? parseInt(v).toLocaleString()+'원' : '10만원 이상, 1만원 단위';
       }
 
-      // [변경] fetch로 최종 가입 신청
       function handleFormSubmit(e, form) {
         e.preventDefault();
         
@@ -561,7 +552,7 @@
         document.getElementById('fullPhone').value = document.getElementById('p1').value+"-"+document.getElementById('p2').value+"-"+document.getElementById('p3').value;
         document.getElementById('fullAddress').value = "("+document.getElementById('postcode').value+") "+document.getElementById('roadAddress').value+" "+document.getElementById('detailAddress').value;
 
-        // 3. Form 데이터를 객체로 변환 (fetch는 Form 객체를 바로 못 보냄)
+        // 3. Form 데이터를 객체로 변환
         var formData = new FormData(form);
         var formObject = {};
         formData.forEach((value, key) => formObject[key] = value);
@@ -572,7 +563,7 @@
         // 4. API 전송
         callApi('signup', { data: formObject })
           .then(res => {
-             if (res.success || res.result === 'SUCCESS') { // 성공 조건
+             if (res.success || res.result === 'SUCCESS') { 
                 document.getElementById('successModal').style.display='flex';
              } else {
                 showAlert("오류: " + res.message);
@@ -600,6 +591,80 @@
         document.getElementById('layer').style.display = 'block';
       }
       function closeDaumPostcode() { document.getElementById('layer').style.display='none'; }
+
+      // ============================================
+      // [NEW] SNS 연동 로직 (자동 실행)
+      // ============================================
+      function handleSnsParams() {
+         // URL 파라미터 읽기
+         const params = new URLSearchParams(window.location.search);
+         
+         // SNS 로그인이 아니면 중단
+         if (params.get('isSns') !== 'true') return;
+
+         console.log("SNS Login Detected");
+
+         // 1. 히든 필드 생성 (snsType, snsId)
+         const form = document.getElementById('joinForm');
+         const addHidden = (name, val) => {
+             let input = document.createElement('input');
+             input.type = 'hidden';
+             input.name = name;
+             input.value = val;
+             form.appendChild(input);
+         };
+         addHidden('snsType', params.get('snsType'));
+         addHidden('snsId', params.get('snsId'));
+
+         // 2. 이름 채우기
+         const name = params.get('name');
+         if (name && name !== 'undefined') {
+             document.getElementById('userName').value = name;
+             syncAccountHolder(); // 예금주 동기화
+         }
+
+         // 3. 이메일 채우기 & 인증 패스
+         const email = params.get('email');
+         if (email && email !== 'undefined') {
+             const emailInput = document.getElementById('email');
+             emailInput.value = email;
+             emailInput.readOnly = true;
+             emailInput.style.backgroundColor = "#e8f0fe"; // 회색 배경
+             
+             // 인증 버튼 숨기기
+             const btnAuth = document.getElementById('btnEmailReq');
+             if (btnAuth) btnAuth.style.display = 'none';
+
+             // 인증 완료 처리
+             document.getElementById('isEmailVerified').value = 'true';
+             
+             // 안내 메시지 추가
+             const authBox = document.getElementById('authBox');
+             authBox.insertAdjacentHTML('afterend', '<div style="color:blue; font-size:12px; margin-top:5px; font-weight:bold;">✅ SNS 계정으로 인증되었습니다.</div>');
+         }
+
+         // 4. 전화번호 처리
+         const phone = params.get('phone');
+         if (phone && phone !== 'undefined' && phone.includes('-')) {
+             const parts = phone.split('-');
+             if (parts.length === 3) {
+                 document.getElementById('p1').value = parts[0];
+                 document.getElementById('p2').value = parts[1];
+                 document.getElementById('p3').value = parts[2];
+                 // 전화번호가 있으면 예금주 등 동기화 한번 더
+                 syncAccountHolder();
+             }
+         } else {
+             // 전화번호가 없으면 사용자가 입력하도록 포커스
+             document.getElementById('p2').placeholder = "필수";
+             document.getElementById('p3').placeholder = "입력";
+             setTimeout(() => document.getElementById('p2').focus(), 500);
+         }
+      }
+
+      // 페이지 로드 시 SNS 파라미터 확인 실행
+      handleSnsParams();
+
     </script>
   </body>
 </html>
