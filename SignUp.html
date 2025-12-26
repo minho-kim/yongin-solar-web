@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <style>
-      /* 스타일은 보내주신 것과 100% 동일 */
       :root { --primary-color: #4e8cff; --bg-color: #f0f7ff; --card-bg: #ffffff; }
       body { font-family: 'Apple SD Gothic Neo', sans-serif; background-color: var(--bg-color); padding: 20px; display: flex; justify-content: center; margin: 0; color: #333; }
       .container { width: 100%; max-width: 500px; box-sizing: border-box; }
@@ -14,8 +13,6 @@
       .info-text { line-height: 1.6; color: #444; margin: 4px 0; display:flex; align-items:flex-start; }
       .info-text::before { content: "✔"; margin-right: 8px; color: var(--primary-color); font-weight:bold; }
       .contact-info { margin-top: 15px; font-weight: bold; color: #555; font-size: 13px; border-top:1px solid #bbdefb; padding-top:10px; }
-
-      .section-card { background: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
 
       .type-selector { display: flex; gap: 30px; margin-bottom: 25px; justify-content: center; background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
       .radio-label { display: flex; align-items: center; font-size: 16px; font-weight: bold; cursor: pointer; color: #333; }
@@ -44,9 +41,14 @@
       .btn-dark { background-color: #546e7a; color: white; height: 48px; padding: 0 18px; font-size: 13px; white-space: nowrap; }
       .btn-dark:disabled { background-color: #cfd8dc; color: #90a4ae; cursor: not-allowed; }
       
+      /* [확인] 수정 버튼 스타일 */
+      .btn-edit { background-color: #fff; color: #546e7a; border: 1px solid #cfd8dc; height: 48px; padding: 0 18px; font-size: 13px; white-space: nowrap; display: none; border-radius: 10px; cursor: pointer; font-weight: bold;}
+      .btn-edit:hover { background-color: #f1f3f4; }
+
       .agreement-box { background-color:#fff; padding:15px; border-radius:12px; margin-top:25px; border: 1px solid #eee; }
-      .check-item { margin-bottom:10px; display:flex; align-items:center; }
-      .check-item input { width: 20px; height: 20px; margin-right: 10px; cursor: pointer; accent-color: var(--primary-color); flex-shrink: 0; }
+      .check-item { margin-bottom:12px; display:flex; align-items:flex-start; }
+      .check-item input { width: 20px; height: 20px; margin-right: 10px; cursor: pointer; accent-color: var(--primary-color); flex-shrink: 0; margin-top: 2px; }
+      .check-item span { line-height: 1.4; font-size: 14px; }
 
       .bank-section { margin-top: 30px; padding: 20px; background-color: #f8faff; border-radius: 12px; border: 1px solid #e3f2fd; }
       .bank-section h3 { font-size: 15px; color: var(--primary-color); margin: 0 0 5px 0; }
@@ -73,7 +75,6 @@
       .kakao-box { margin-top: 20px; margin-bottom: 15px; text-align: center; }
       .kakao-link-btn { display: block; background-color: #FEE500; color: #3C1E1E; text-decoration: none; padding: 12px; border-radius: 8px; font-weight:bold; }
       
-      /* 우편번호 레이어 */
       #layer { display:none; position:fixed; overflow:hidden; z-index:99999; background:white; top:50%; left:50%; transform:translate(-50%,-50%); width:90%; height:90%; max-width:500px; border:1px solid #ddd; border-radius:10px; }
     </style>
   </head>
@@ -107,7 +108,6 @@
 
         <div id="orgField" style="display:none;">
           <div class="input-group"><label class="required">단체명</label><input type="text" id="orgName" name="orgName" placeholder="예: (주)용인솔라, OO아파트입주자대표회의" oninput="syncAccountHolder()"></div>
-          
           <div class="input-group"><label class="required">사업자(고유)번호</label>
             <div class="split-box">
               <input type="text" id="biz1" maxlength="3" placeholder="3자리" style="flex:1;" oninput="handleNumberOnly(this); autoMove(this, 'biz2', 3);">
@@ -145,6 +145,8 @@
         <div class="input-group"><label class="required">이메일 주소</label>
           <div class="split-box">
             <input type="email" id="email" name="email" placeholder="example@email.com" style="flex:1;">
+            
+            <button type="button" class="btn-edit" onclick="enableEmailEdit()" id="btnEmailEdit">수정</button>
             <button type="button" class="btn-dark" onclick="reqEmailAuth()" id="btnEmailReq">인증</button>
           </div>
           <div id="authBox" style="display: none; align-items: center; gap: 8px; margin-top:8px;">
@@ -186,6 +188,8 @@
         <div class="agreement-box">
           <div class="check-item"><input type="checkbox" id="agree1" required> <span class="term-link" onclick="showTerm(event, 'privacy')">[필수] 개인정보 수집 및 활용에 동의합니다.</span></div>
           <div class="check-item"><input type="checkbox" id="agree2" required> <span class="term-link" onclick="showTerm(event, 'purpose')">[필수] 조합의 설립목적에 동의하고 의무를 다하겠습니다.</span></div>
+          
+          <div class="check-item"><input type="checkbox" id="agree3" required> <span class="term-link" onclick="showTerm(event, 'risk')">[필수] 출자금 손실 위험 및 환급 제한 등에 동의합니다.</span></div>
         </div>
 
         <button type="submit" id="btnSubmit">가입 신청하기</button>
@@ -219,10 +223,9 @@
     </div>
 
     <script>
-      // ⚠️ 배포된 앱스크립트 주소 (변경 금지 / 혹시 바뀌면 수정 필요)
+      // ⚠️ 배포 주소 (Main.gs URL로 변경 필요)
       const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
 
-      // [통신 헬퍼]
       async function callApi(action, payload) {
         try {
           const response = await fetch(API_URL, {
@@ -238,90 +241,64 @@
         }
       }
 
+      // [수정] 약관 데이터에 'risk' 항목 추가됨
       var termsData = {
-        privacy: {
-          title: "개인정보 수집 및 활용 동의",
-          content: "본인은「개인정보보호법」제15조(수집·이용·제공) 및 제17조(개인정보의 제공) 제1항 제1호에 따라 귀 기관이 개인정보를 수집·이용·제공 하는 것에 대하여 동의합니다.\n\n1. 개인정보의 수집 이용 목적: (가칭)용인모두의햇빛협동조합의 설립 및 배당금 지급\n2. 수집하는 개인정보의 항목 : 이름, 휴대폰번호, 주민등록번호, 주소, 이메일 주소\n3. 개인정보의 보유 및 이용 기간: 개인정보의 수집·이용 목적 달성시까지, 또는 조합원이 자신의 개인정보제공의 동의를 철회한 때. 단, 관련 법령의 규정에 의하여 개인정보를 보유할 필요가 있는 경우, 해당 법령에서 정한 기간까지.\n\n* 수집된 고유식별정보(주민등록번호)는 암호화되어 안전하게 저장됩니다."
-        },
-        purpose: {
-          title: "조합의 설립목적 동의",
-          content: "<b>제2조(목적)</b> 용인모두의햇빛협동조합(이하 ‘조합’이라 한다)은 자주적·자립적·자치적인 협동조합 활동을 통하여 시민참여형 태양광 발전소를 설립·운영하고, 햇빛을 닮아 모든 생명이 공평한 삶을 누릴 수 있도록 지역공동체를 중심으로 상호부조의 가치를 실천함으로써 기후위기에 대응하고, 에너지 전환을 실현하며, 취약계층에게 일자리와 사회서비스를 제공하는 등 지역사회에 기여함을 목적으로 한다."
+        privacy: { title: "개인정보 수집 및 활용 동의", content: "본인은「개인정보보호법」제15조(수집·이용·제공) 및 제17조(개인정보의 제공) 제1항 제1호에 따라 귀 기관이 개인정보를 수집·이용·제공 하는 것에 대하여 동의합니다.\n\n1. 개인정보의 수집 이용 목적: (가칭)용인모두의햇빛협동조합의 설립 및 배당금 지급\n2. 수집하는 개인정보의 항목 : 이름, 휴대폰번호, 주민등록번호, 주소, 이메일 주소\n3. 개인정보의 보유 및 이용 기간: 개인정보의 수집·이용 목적 달성시까지, 또는 조합원이 자신의 개인정보제공의 동의를 철회한 때. 단, 관련 법령의 규정에 의하여 개인정보를 보유할 필요가 있는 경우, 해당 법령에서 정한 기간까지.\n\n* 수집된 고유식별정보(주민등록번호)는 암호화되어 안전하게 저장됩니다." },
+        purpose: { title: "조합의 설립목적 동의", content: "<b>제2조(목적)</b> 용인모두의햇빛협동조합(이하 ‘조합’이라 한다)은 자주적·자립적·자치적인 협동조합 활동을 통하여 시민참여형 태양광 발전소를 설립·운영하고, 햇빛을 닮아 모든 생명이 공평한 삶을 누릴 수 있도록 지역공동체를 중심으로 상호부조의 가치를 실천함으로써 기후위기에 대응하고, 에너지 전환을 실현하며, 취약계층에게 일자리와 사회서비스를 제공하는 등 지역사회에 기여함을 목적으로 한다." },
+        
+        // [NEW] 출자금 위험 고지 내용 추가
+        risk: { 
+          title: "출자금 및 배당 관련 중요 고지", 
+          content: "1. 출자금은 예금자보호 대상이 아니며 원금 손실 가능성이 있음을 확인했습니다.\n\n2. 탈퇴(또는 제명) 전 중도 환급이 제한될 수 있음을 확인했습니다.\n\n3. 환급은 결산 및 총회 승인 등 절차 후 가능하며 지연·분할 지급될 수 있음을 확인했습니다.\n\n4. 배당은 총회 의결 및 경영성과에 따라 결정되며 없을 수 있음을 확인했습니다." 
         }
       };
 
-      var authTimer = null;
-      var btnCooldownTimer = null;
+      var authTimer = null; var btnCooldownTimer = null; var originalEmail = "";
 
       function handleNumberOnly(el) { el.value = el.value.replace(/[^0-9]/g, ''); }
       function autoMove(c,n,l) { if(c.value.length>=l) document.getElementById(n).focus(); }
 
       function checkAgeLimit() {
-        var rrn1 = document.getElementById('rrn1').value; 
-        var rrn2 = document.getElementById('rrn2').value; 
-        
+        var rrn1 = document.getElementById('rrn1').value; var rrn2 = document.getElementById('rrn2').value; 
         if (rrn1.length === 6 && rrn2.length >= 1) {
-          var birthYearPrefix;
-          var firstDigit = parseInt(rrn2.charAt(0));
+          var birthYearPrefix; var firstDigit = parseInt(rrn2.charAt(0));
           if (firstDigit === 1 || firstDigit === 2 || firstDigit === 5 || firstDigit === 6) birthYearPrefix = 19;
           else if (firstDigit === 3 || firstDigit === 4 || firstDigit === 7 || firstDigit === 8) birthYearPrefix = 20;
           else return;
-
           var birthYear = parseInt(birthYearPrefix + rrn1.substring(0, 2));
-          var birthMonth = parseInt(rrn1.substring(2, 4)) - 1; 
-          var birthDay = parseInt(rrn1.substring(4, 6));
-          
-          var today = new Date();
-          var birthDate = new Date(birthYear, birthMonth, birthDay);
+          var birthMonth = parseInt(rrn1.substring(2, 4)) - 1; var birthDay = parseInt(rrn1.substring(4, 6));
+          var today = new Date(); var birthDate = new Date(birthYear, birthMonth, birthDay);
           var age = today.getFullYear() - birthDate.getFullYear();
           var m = today.getMonth() - birthDate.getMonth();
           if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
 
           if (age < 19) {
-            showAlert("⛔ 미성년자 가입 제한\n\n[민법 제5조 1항]에 따라 미성년자의 법률행위에는 법정대리인의 동의가 반드시 필요합니다.\n\n미성년자의 가입을 원하시면 사무국으로 문의 바랍니다.\n\n(문의: 사무국장 김민호 010-2513-5736)");
-            document.getElementById('rrn1').value = "";
-            document.getElementById('rrn2').value = "";
-            document.getElementById('rrn1').focus();
+            showAlert("⛔ 미성년자 가입 제한\n\n[민법 제5조 1항]에 따라 미성년자의 법률행위에는 법정대리인의 동의가 반드시 필요합니다.");
+            document.getElementById('rrn1').value = ""; document.getElementById('rrn2').value = ""; document.getElementById('rrn1').focus();
           }
         }
       }
 
       function validateAndCheckBizNo() {
-         var b1 = document.getElementById('biz1').value;
-         var b2 = document.getElementById('biz2').value;
-         var b3 = document.getElementById('biz3').value;
+         var b1 = document.getElementById('biz1').value; var b2 = document.getElementById('biz2').value; var b3 = document.getElementById('biz3').value;
          var bizNo = b1 + b2 + b3;
          var errorDiv = document.getElementById('orgNoError');
-         
-         if(bizNo.length !== 10) {
-            if(bizNo.length > 0) errorDiv.textContent = "사업자(고유)번호 10자리를 입력해주세요.";
-            return;
-         }
-
-         var checkID = [1, 3, 7, 1, 3, 7, 1, 3, 5]; 
-         var tmpBizID, i, chkSum=0, c2, remander; 
+         if(bizNo.length !== 10) { if(bizNo.length > 0) errorDiv.textContent = "사업자(고유)번호 10자리를 입력해주세요."; return; }
+         var checkID = [1, 3, 7, 1, 3, 7, 1, 3, 5]; var i, chkSum=0, c2, remander; 
          for (i=0; i<=7; i++) chkSum += checkID[i] * bizNo.charAt(i); 
-         c2 = "0" + (checkID[8] * bizNo.charAt(8)); 
-         c2 = c2.substring(c2.length - 2); 
+         c2 = "0" + (checkID[8] * bizNo.charAt(8)); c2 = c2.substring(c2.length - 2); 
          chkSum += Math.floor(c2.charAt(0)) + Math.floor(c2.charAt(1)); 
          remander = (10 - (chkSum % 10)) % 10 ; 
-
          if (Math.floor(bizNo.charAt(9)) === remander) {
-            errorDiv.textContent = ""; 
-            document.getElementById('orgNo').value = b1 + "-" + b2 + "-" + b3;
+            errorDiv.textContent = ""; document.getElementById('orgNo').value = b1 + "-" + b2 + "-" + b3;
             checkOrgNoDuplicateServer(bizNo); 
-         } else {
-            errorDiv.textContent = "유효하지 않은 사업자(고유)번호입니다.";
-            document.getElementById('orgNo').value = "";
-         }
+         } else { errorDiv.textContent = "유효하지 않은 사업자(고유)번호입니다."; document.getElementById('orgNo').value = ""; }
       }
-
       function checkOrgNoDuplicateServer(valStr) {
          if(!valStr) return;
          var formatted = valStr.substring(0,3)+"-"+valStr.substring(3,5)+"-"+valStr.substring(5);
          callApi('checkDuplicate', { type: 'orgNo', value: formatted })
-           .then(res => {
-             if(res.result === 'DUPLICATE') document.getElementById('orgNoError').textContent='이미 가입된 번호입니다.'; 
-           })
+           .then(res => { if(res.result === 'DUPLICATE') document.getElementById('orgNoError').textContent='이미 가입된 번호입니다.'; })
            .catch(err => console.error(err));
       }
 
@@ -330,40 +307,23 @@
         var modal = document.getElementById('popoverModal');
         document.getElementById('popoverTitle').textContent = termsData[type].title;
         document.getElementById('popoverText').innerHTML = termsData[type].content.replace(/\n/g, '<br>');
-        
-        if(window.innerWidth <= 600) {
-          modal.style.display = 'flex'; setTimeout(()=>modal.classList.add('show'), 10);
-        } else {
+        if(window.innerWidth <= 600) { modal.style.display = 'flex'; setTimeout(()=>modal.classList.add('show'), 10); }
+        else {
           modal.classList.remove('show'); modal.style.display = 'block'; 
-          var content = modal.querySelector('.modal-content');
-          var arrow = document.getElementById('popoverArrow');
-          var clickY = e.pageY; var clickX = e.pageX;
-          var topPos = clickY - content.offsetHeight - 15;
-          if (topPos < window.scrollY + 10) {
-             topPos = clickY + 25; arrow.style.top = "-8px"; arrow.style.bottom = "auto"; arrow.style.transform = "rotate(225deg)";
-          } else {
-             arrow.style.bottom = "-8px"; arrow.style.top = "auto"; arrow.style.transform = "rotate(45deg)";
-          }
-          content.style.position = 'absolute'; content.style.top = topPos + 'px';
-          content.style.left = Math.min(Math.max(10, clickX - 20), window.innerWidth - 320) + 'px';
+          var content = modal.querySelector('.modal-content'); var arrow = document.getElementById('popoverArrow');
+          var clickY = e.pageY; var clickX = e.pageX; var topPos = clickY - content.offsetHeight - 15;
+          if (topPos < window.scrollY + 10) { topPos = clickY + 25; arrow.style.top = "-8px"; arrow.style.bottom = "auto"; arrow.style.transform = "rotate(225deg)"; }
+          else { arrow.style.bottom = "-8px"; arrow.style.top = "auto"; arrow.style.transform = "rotate(45deg)"; }
+          content.style.position = 'absolute'; content.style.top = topPos + 'px'; content.style.left = Math.min(Math.max(10, clickX - 20), window.innerWidth - 320) + 'px';
         }
       }
-
       function showAlert(msg) { document.getElementById('centerMsg').innerHTML=msg.replace(/\n/g, '<br>'); document.getElementById('centerModal').style.display='flex'; }
       function toggleType(t) {
-        var isIndividual = (t === '개인');
-        var isOrg = (t === '단체');
-
+        var isIndividual = (t === '개인'); var isOrg = (t === '단체');
         document.getElementById('individualField').style.display = isIndividual ? 'block' : 'none';
         document.getElementById('orgField').style.display = isOrg ? 'block' : 'none';
-
-        document.getElementById('userName').required = isIndividual;
-        document.getElementById('rrn1').required = isIndividual;
-        document.getElementById('rrn2').required = isIndividual;
-
-        var orgNameInput = document.getElementById('orgName');
-        if(orgNameInput) orgNameInput.required = isOrg;
-        
+        document.getElementById('userName').required = isIndividual; document.getElementById('rrn1').required = isIndividual; document.getElementById('rrn2').required = isIndividual;
+        var orgNameInput = document.getElementById('orgName'); if(orgNameInput) orgNameInput.required = isOrg;
         syncAccountHolder();
       }
       function syncAccountHolder() {
@@ -372,150 +332,82 @@
         document.getElementById('accountHolder').value = val;
       }
       function handleAccountInput(el) { el.value = el.value.replace(/[^0-9]/g,''); }
-
       function checkAccountDuplicateServer() {
-        var val = document.getElementById('accountNo').value;
-        if(!val) return;
+        var val = document.getElementById('accountNo').value; if(!val) return;
         callApi('checkDuplicate', { type: 'account', value: val })
-          .then(res => {
-            if(res.result === 'DUPLICATE') document.getElementById('accountError').textContent='이미 등록된 계좌입니다.';
-          })
+          .then(res => { if(res.result === 'DUPLICATE') document.getElementById('accountError').textContent='이미 등록된 계좌입니다.'; })
           .catch(err => console.error(err));
       }
-
       function checkRRNOnBlur() { 
          var rrn = document.getElementById('rrn1').value + document.getElementById('rrn2').value;
          if(rrn.length >= 7) {
            callApi('checkDuplicate', { type: 'rrn', value: rrn })
-             .then(res => {
-               if(res.result === 'DUPLICATE') document.getElementById('rrnError').textContent='이미 가입된 번호입니다.';
-             })
+             .then(res => { if(res.result === 'DUPLICATE') document.getElementById('rrnError').textContent='이미 가입된 번호입니다.'; })
              .catch(err => console.error(err));
          }
       }
-
-       function checkPhoneDuplicateServer() {
-         var userType = document.querySelector('input[name="userType"]:checked').value;
-         if (userType === '단체') return;
+      function checkPhoneDuplicateServer() {
+         var userType = document.querySelector('input[name="userType"]:checked').value; if (userType === '단체') return;
          var p = document.getElementById('p1').value+"-"+document.getElementById('p2').value+"-"+document.getElementById('p3').value;
-         
          callApi('checkDuplicate', { type: 'phone', value: p })
-           .then(res => {
-             if(res.result === 'DUPLICATE') document.getElementById('phoneError').textContent='이미 가입된 연락처입니다.';
-           })
+           .then(res => { if(res.result === 'DUPLICATE') document.getElementById('phoneError').textContent='이미 가입된 연락처입니다.'; })
            .catch(err => console.error(err));
-       }
-
-      function startTimer(duration, display) {
-        var timer = duration, minutes, seconds;
-        if(authTimer) clearInterval(authTimer);
-
-        authTimer = setInterval(function () {
-          minutes = parseInt(timer / 60, 10);
-          seconds = parseInt(timer % 60, 10);
-
-          minutes = minutes < 10 ? "0" + minutes : minutes;
-          seconds = seconds < 10 ? "0" + seconds : seconds;
-
-          display.textContent = minutes + ":" + seconds;
-
-          if (--timer < 0) {
-            clearInterval(authTimer);
-            display.textContent = "만료";
-            alert("인증 시간이 만료되었습니다. 다시 인증을 요청해주세요.");
-            document.getElementById('authCode').value = '';
-            document.getElementById('authBox').style.display = 'none';
-          }
-        }, 1000);
       }
 
+      function startTimer(duration, display) {
+        var timer = duration, minutes, seconds; if(authTimer) clearInterval(authTimer);
+        authTimer = setInterval(function () {
+          minutes = parseInt(timer / 60, 10); seconds = parseInt(timer % 60, 10);
+          minutes = minutes < 10 ? "0" + minutes : minutes; seconds = seconds < 10 ? "0" + seconds : seconds;
+          display.textContent = minutes + ":" + seconds;
+          if (--timer < 0) { clearInterval(authTimer); display.textContent = "만료"; alert("인증 시간이 만료되었습니다."); document.getElementById('authCode').value = ''; document.getElementById('authBox').style.display = 'none'; }
+        }, 1000);
+      }
       function startButtonCooldown(duration, btn) {
-        var timer = duration, minutes, seconds;
-        if (btnCooldownTimer) clearInterval(btnCooldownTimer);
-
+        var timer = duration, minutes, seconds; if (btnCooldownTimer) clearInterval(btnCooldownTimer);
         btn.disabled = true; 
-
         btnCooldownTimer = setInterval(function () {
-          minutes = parseInt(timer / 60, 10);
-          seconds = parseInt(timer % 60, 10);
-
-          minutes = minutes < 10 ? "0" + minutes : minutes;
-          seconds = seconds < 10 ? "0" + seconds : seconds;
-
+          minutes = parseInt(timer / 60, 10); seconds = parseInt(timer % 60, 10);
+          minutes = minutes < 10 ? "0" + minutes : minutes; seconds = seconds < 10 ? "0" + seconds : seconds;
           btn.textContent = "재발송 (" + minutes + ":" + seconds + ")";
-
-          if (--timer < 0) {
-            clearInterval(btnCooldownTimer);
-            btn.textContent = "인증번호 재발송";
-            btn.disabled = false; 
-          }
+          if (--timer < 0) { clearInterval(btnCooldownTimer); btn.textContent = "인증번호 재발송"; btn.disabled = false; }
         }, 1000);
       }
 
       function reqEmailAuth() {
-        var em = document.getElementById('email').value;
-        var btn = document.getElementById('btnEmailReq'); 
-
+        var em = document.getElementById('email').value; var btn = document.getElementById('btnEmailReq'); 
         if(!em) return showAlert('이메일을 입력하세요.');
-
-        btn.disabled = true;
-        btn.textContent = "발송 중...";
-
+        btn.disabled = true; btn.textContent = "발송 중...";
         callApi('sendEmailAuth', { email: em, userType: document.querySelector('input[name="userType"]:checked').value })
           .then(res => {
-            if(res.result === 'DUPLICATE') {
-               showAlert('이미 가입된 이메일입니다.');
-               btn.disabled = false; btn.textContent = "인증";
-            } else if(res.result === 'SENT') { 
-               showAlert('인증번호가 발송되었습니다.\n(메일이 안 오면 스팸함을 확인해주세요)'); 
-               document.getElementById('authBox').style.display='flex'; 
-               document.getElementById('authCode').focus();
-               startTimer(300, document.querySelector('#timer'));
-               startButtonCooldown(180, btn);
-            } else {
-               showAlert('오류: ' + res.message);
-               btn.disabled = false; btn.textContent = "인증";
-            }
+            if(res.result === 'DUPLICATE') { showAlert('이미 가입된 이메일입니다.'); btn.disabled = false; btn.textContent = "인증"; }
+            else if(res.result === 'SENT') { 
+               showAlert('인증번호가 발송되었습니다.'); document.getElementById('authBox').style.display='flex'; 
+               document.getElementById('authCode').focus(); startTimer(300, document.querySelector('#timer')); startButtonCooldown(180, btn);
+            } else { showAlert('오류: ' + res.message); btn.disabled = false; btn.textContent = "인증"; }
           })
-          .catch(err => {
-             showAlert("서버 통신 오류: " + err.message);
-             btn.disabled = false; btn.textContent = "인증";
-          });
+          .catch(err => { showAlert("서버 통신 오류: " + err.message); btn.disabled = false; btn.textContent = "인증"; });
       }
-      
       function handleAuthCodeInput() {
-         var el = document.getElementById('authCode');
-         var val = el.value;
+         var el = document.getElementById('authCode'); var val = el.value;
          if(val.length === 6) {
-           el.readOnly = true; 
-           el.style.backgroundColor = "#e8f0fe"; 
-           
+           el.readOnly = true; el.style.backgroundColor = "#e8f0fe"; 
            callApi('verifyEmailAuth', { email: document.getElementById('email').value, code: val })
              .then(res => {
                 if(res.result === 'OK') { 
-                   document.getElementById('emailError').textContent = ''; 
-                   document.getElementById('authSuccessMsg').style.display='block'; 
-                   document.getElementById('authBox').style.display='none'; 
-                   document.getElementById('isEmailVerified').value='true'; 
+                   document.getElementById('emailError').textContent = ''; document.getElementById('authSuccessMsg').style.display='block'; 
+                   document.getElementById('authBox').style.display='none'; document.getElementById('isEmailVerified').value='true'; 
                    document.getElementById('btnEmailReq').disabled = true; 
-                   if(authTimer) clearInterval(authTimer);
-                   if(btnCooldownTimer) clearInterval(btnCooldownTimer); 
+                   if(authTimer) clearInterval(authTimer); if(btnCooldownTimer) clearInterval(btnCooldownTimer); 
                    document.getElementById('btnEmailReq').textContent = "인증완료";
+                   originalEmail = document.getElementById('email').value;
                 } else {
-                   el.readOnly = false;
-                   el.style.backgroundColor = "#fff"; 
-                   el.focus(); 
-                   if (res.result === 'BLOCK') {
-                       document.getElementById('emailError').textContent = '❌ 5회 오류: 10분간 인증이 제한됩니다.';
-                       alert("보안 경고: 인증 시도가 너무 많습니다.\n10분 뒤에 다시 시도해주세요.");
-                   } else {
-                       document.getElementById('emailError').textContent = '번호가 틀립니다. 다시 입력해주세요.';
-                   }
+                   el.readOnly = false; el.style.backgroundColor = "#fff"; el.focus(); 
+                   if (res.result === 'BLOCK') { document.getElementById('emailError').textContent = '❌ 5회 오류: 10분간 제한'; alert("보안 경고: 인증 시도 과다"); } 
+                   else { document.getElementById('emailError').textContent = '번호가 틀립니다.'; }
                 }
              })
              .catch(err => console.error(err));
-         } else {
-            document.getElementById('emailError').textContent = '';
          }
       }
 
@@ -527,7 +419,6 @@
       function handleFormSubmit(e, form) {
         e.preventDefault();
         
-        // 1. 유효성 검사
         var userType = document.querySelector('input[name="userType"]:checked').value;
         if (userType === '개인') {
             var name = document.getElementById('userName').value.trim();
@@ -539,52 +430,42 @@
             if(!orgNo || orgNo.length < 10) return showAlert('사업자(고유)번호를 입력해주세요.');
         }
 
-        var p2 = document.getElementById('p2').value;
-        var p3 = document.getElementById('p3').value;
-        if(p2.length < 3 || p3.length < 4) {
-            return showAlert('전화번호를 정확히 입력해주세요.\n(중간 3~4자리, 끝 4자리)');
-        }
+        var p2 = document.getElementById('p2').value; var p3 = document.getElementById('p3').value;
+        if(p2.length < 3 || p3.length < 4) return showAlert('전화번호를 정확히 입력해주세요.');
 
-        if(document.getElementById('isEmailVerified').value!=='true') return showAlert('이메일 인증이 필요합니다.');
+        // 이메일 검증
+        var currentEmail = document.getElementById('email').value;
+        var isVerified = document.getElementById('isEmailVerified').value === 'true';
+        if (originalEmail && currentEmail === originalEmail) { } // 통과
+        else { if (!isVerified) return showAlert('이메일 인증이 필요합니다.'); }
+
         if(document.getElementById('accountError').textContent || document.getElementById('rrnError').textContent || document.getElementById('orgNoError').textContent) return showAlert('입력 오류를 확인해주세요.');
         
-        // 2. 숨겨진 필드 값 조합
         document.getElementById('fullPhone').value = document.getElementById('p1').value+"-"+document.getElementById('p2').value+"-"+document.getElementById('p3').value;
         document.getElementById('fullAddress').value = "("+document.getElementById('postcode').value+") "+document.getElementById('roadAddress').value+" "+document.getElementById('detailAddress').value;
 
-        // 3. Form 데이터를 객체로 변환
         var formData = new FormData(form);
         var formObject = {};
         formData.forEach((value, key) => formObject[key] = value);
 
-        document.getElementById('btnSubmit').disabled=true; 
-        document.getElementById('btnSubmit').textContent='처리중...';
+        document.getElementById('btnSubmit').disabled=true; document.getElementById('btnSubmit').textContent='처리중...';
 
-        // 4. API 전송
         callApi('signup', { data: formObject })
           .then(res => {
-             if (res.success || res.result === 'SUCCESS') { 
-                document.getElementById('successModal').style.display='flex';
-             } else {
-                showAlert("오류: " + res.message);
-                document.getElementById('btnSubmit').disabled=false;
-                document.getElementById('btnSubmit').textContent='가입 신청하기';
-             }
+             if (res.success || res.result === 'SUCCESS') { document.getElementById('successModal').style.display='flex'; } 
+             else { showAlert("오류: " + res.message); document.getElementById('btnSubmit').disabled=false; document.getElementById('btnSubmit').textContent='가입 신청하기'; }
           })
           .catch(err => {
              showAlert("서버 통신 오류: " + err.message);
-             document.getElementById('btnSubmit').disabled=false;
-             document.getElementById('btnSubmit').textContent='가입 신청하기';
+             document.getElementById('btnSubmit').disabled=false; document.getElementById('btnSubmit').textContent='가입 신청하기';
           });
       }
 
       function execDaumPostcode() {
         new daum.Postcode({
           oncomplete: function(data) {
-             var addr = data.roadAddress;
-             if(data.buildingName) addr += " ("+data.buildingName+")";
-             document.getElementById('postcode').value = data.zonecode;
-             document.getElementById('roadAddress').value = addr;
+             var addr = data.roadAddress; if(data.buildingName) addr += " ("+data.buildingName+")";
+             document.getElementById('postcode').value = data.zonecode; document.getElementById('roadAddress').value = addr;
              document.getElementById('layer').style.display = 'none';
           }, width:'100%', height:'100%'
         }).embed(document.getElementById('layer'));
@@ -592,79 +473,63 @@
       }
       function closeDaumPostcode() { document.getElementById('layer').style.display='none'; }
 
-      // ============================================
-      // [NEW] SNS 연동 로직 (자동 실행)
-      // ============================================
+      function enableEmailEdit() {
+          if (!confirm("이메일을 수정하시겠습니까?\n수정 시 인증을 다시 진행해야 합니다.")) return;
+          var emailInput = document.getElementById('email');
+          emailInput.readOnly = false; emailInput.style.backgroundColor = "#fff"; emailInput.focus();
+          document.getElementById('btnEmailEdit').style.display = 'none';
+          document.getElementById('btnEmailReq').style.display = 'block';
+          document.getElementById('isEmailVerified').value = 'false';
+          document.getElementById('authSuccessMsg').style.display = 'none';
+          document.getElementById('btnEmailReq').textContent = "인증";
+          document.getElementById('btnEmailReq').disabled = false;
+      }
+
       function handleSnsParams() {
-         // URL 파라미터 읽기
          const params = new URLSearchParams(window.location.search);
-         
-         // SNS 로그인이 아니면 중단
          if (params.get('isSns') !== 'true') return;
 
-         console.log("SNS Login Detected");
-
-         // 1. 히든 필드 생성 (snsType, snsId)
          const form = document.getElementById('joinForm');
-         const addHidden = (name, val) => {
-             let input = document.createElement('input');
-             input.type = 'hidden';
-             input.name = name;
-             input.value = val;
-             form.appendChild(input);
-         };
+         const addHidden = (name, val) => { let input = document.createElement('input'); input.type = 'hidden'; input.name = name; input.value = val; form.appendChild(input); };
          addHidden('snsType', params.get('snsType'));
          addHidden('snsId', params.get('snsId'));
 
-         // 2. 이름 채우기
-         const name = params.get('name');
-         if (name && name !== 'undefined') {
-             document.getElementById('userName').value = name;
-             syncAccountHolder(); // 예금주 동기화
-         }
+         // 단체 가입 막기
+         document.querySelectorAll('input[name="userType"]')[1].disabled = true;
+         document.querySelectorAll('.radio-label')[1].style.opacity = "0.5";
 
-         // 3. 이메일 채우기 & 인증 패스
+         const name = params.get('name');
+         if (name && name !== 'undefined') { document.getElementById('userName').value = name; syncAccountHolder(); }
+
          const email = params.get('email');
          if (email && email !== 'undefined') {
              const emailInput = document.getElementById('email');
              emailInput.value = email;
              emailInput.readOnly = true;
-             emailInput.style.backgroundColor = "#e8f0fe"; // 회색 배경
-             
-             // 인증 버튼 숨기기
-             const btnAuth = document.getElementById('btnEmailReq');
-             if (btnAuth) btnAuth.style.display = 'none';
-
-             // 인증 완료 처리
+             emailInput.style.backgroundColor = "#e8f0fe";
+             originalEmail = email;
+             // [확인] 이메일 있을 때 수정 버튼 활성화
+             document.getElementById('btnEmailReq').style.display = 'none';
+             document.getElementById('btnEmailEdit').style.display = 'block';
              document.getElementById('isEmailVerified').value = 'true';
-             
-             // 안내 메시지 추가
              const authBox = document.getElementById('authBox');
              authBox.insertAdjacentHTML('afterend', '<div style="color:blue; font-size:12px; margin-top:5px; font-weight:bold;">✅ SNS 계정으로 인증되었습니다.</div>');
          }
 
-         // 4. 전화번호 처리
          const phone = params.get('phone');
          if (phone && phone !== 'undefined' && phone.includes('-')) {
              const parts = phone.split('-');
              if (parts.length === 3) {
-                 document.getElementById('p1').value = parts[0];
-                 document.getElementById('p2').value = parts[1];
-                 document.getElementById('p3').value = parts[2];
-                 // 전화번호가 있으면 예금주 등 동기화 한번 더
+                 document.getElementById('p1').value = parts[0]; document.getElementById('p2').value = parts[1]; document.getElementById('p3').value = parts[2];
+                 // [확인] 전화번호 읽기 전용 처리
+                 document.getElementById('p1').readOnly = true; document.getElementById('p1').style.backgroundColor = "#e8f0fe";
+                 document.getElementById('p2').readOnly = true; document.getElementById('p2').style.backgroundColor = "#e8f0fe";
+                 document.getElementById('p3').readOnly = true; document.getElementById('p3').style.backgroundColor = "#e8f0fe";
                  syncAccountHolder();
              }
-         } else {
-             // 전화번호가 없으면 사용자가 입력하도록 포커스
-             document.getElementById('p2').placeholder = "필수";
-             document.getElementById('p3').placeholder = "입력";
-             setTimeout(() => document.getElementById('p2').focus(), 500);
          }
       }
-
-      // 페이지 로드 시 SNS 파라미터 확인 실행
       handleSnsParams();
-
     </script>
   </body>
 </html>
