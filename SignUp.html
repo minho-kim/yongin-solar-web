@@ -552,25 +552,33 @@ function handleSnsParams() {
         authBox.insertAdjacentHTML('afterend', '<div style="color:blue; font-size:12px; margin-top:5px; font-weight:bold;">✅ SNS 계정으로 인증되었습니다.</div>');
     }
 
-    // 6. 전화번호 채우기 & 잠금
-    const phone = params.get('phone');
-    if (phone && phone !== 'undefined' && phone.includes('-')) {
-        const parts = phone.split('-');
-        if (parts.length === 3) {
-            const p1 = document.getElementById('p1');
-            const p2 = document.getElementById('p2');
-            const p3 = document.getElementById('p3');
+// 6. 전화번호 채우기 & 잠금 (하이픈 자동 처리 추가)
+    let phone = params.get('phone');
+    if (phone && phone !== 'undefined') {
+        // [수정됨] 하이픈(-)이 없으면 자동으로 넣어주는 코드 추가
+        if (!phone.includes('-') && phone.length >= 10) {
+            phone = phone.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
+        }
 
-            p1.value = parts[0];
-            p2.value = parts[1];
-            p3.value = parts[2];
+        // 이제 하이픈이 있든 없든 처리 가능
+        if (phone.includes('-')) {
+            const parts = phone.split('-');
+            if (parts.length === 3) {
+                const p1 = document.getElementById('p1');
+                const p2 = document.getElementById('p2');
+                const p3 = document.getElementById('p3');
 
-            // 전화번호 수정 절대 불가 (회색 처리)
-            p1.readOnly = true; p1.style.backgroundColor = "#e8f0fe";
-            p2.readOnly = true; p2.style.backgroundColor = "#e8f0fe";
-            p3.readOnly = true; p3.style.backgroundColor = "#e8f0fe";
-            
-            syncAccountHolder();
+                p1.value = parts[0];
+                p2.value = parts[1];
+                p3.value = parts[2];
+
+                // 전화번호 수정 절대 불가 (회색 처리)
+                p1.readOnly = true; p1.style.backgroundColor = "#e8f0fe";
+                p2.readOnly = true; p2.style.backgroundColor = "#e8f0fe";
+                p3.readOnly = true; p3.style.backgroundColor = "#e8f0fe";
+                
+                syncAccountHolder();
+            }
         }
     } else {
         // 전화번호가 없는 경우 포커스만 이동
