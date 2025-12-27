@@ -601,6 +601,26 @@ function startKakaoSignup() {
     // 3. 현재 창에서 이동 (또는 팝업)
     window.location.href = kakaoUrl; 
 }
+      function startNaverSignup() {
+    // 1. 네이버용 State 생성 (핵심: signup_naver_ 접두어)
+    // callback.html은 'signup_'으로 시작하기만 하면 되므로, 이 패턴을 쓰면
+    // 깃허브 코드를 수정하지 않아도 자동으로 인식됩니다! (천재적인 꼼수)
+    var randomStr = Math.random().toString(36).substring(2, 15);
+    var state = "signup_naver_" + randomStr; 
+    
+    // 2. Client ID 설정 (HTML 상단 상수 활용 권장)
+    var NAVER_CLIENT_ID = "발급받은_네이버_클라이언트_ID"; 
+
+    // 3. 인증 URL 생성
+    var naverUrl = "https://nid.naver.com/oauth2.0/authorize" +
+                   "?response_type=code" +
+                   "&client_id=" + NAVER_CLIENT_ID +
+                   "&redirect_uri=" + encodeURIComponent("https://minho-kim.github.io/yongin-solar-web/callback.html") +
+                   "&state=" + state;
+    
+    // 4. 이동
+    window.location.href = naverUrl;
+}
       handleSnsParams();
     </script>
   </body>
