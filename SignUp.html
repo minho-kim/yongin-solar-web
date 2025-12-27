@@ -214,6 +214,16 @@
        </div>
     </div>
     
+    <div id="confirmModal" class="center-modal" style="z-index: 100000;">
+       <div class="modal-content">
+          <div id="confirmMsg" style="margin-bottom:20px; white-space:pre-wrap; font-size:15px; color:#333;"></div>
+          <div style="display:flex; gap:10px;">
+             <button id="btnConfirmCancel" type="button" style="flex:1; background:#f1f3f4; color:#333; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer;">취소</button>
+             <button id="btnConfirmOk" type="button" style="flex:1; background:#4e8cff; color:white; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer;">확인</button>
+          </div>
+       </div>
+    </div>
+    
     <div id="successModal" class="center-modal">
       <div class="modal-content">
         <div style="font-size:40px; margin-bottom:10px;">🎉</div>
@@ -320,10 +330,27 @@
         }
       }
       
-      // [헬퍼] 모달 띄우기 함수
+      // [헬퍼] 알림 모달 띄우기 함수
       function showAlert(msg) { 
           document.getElementById('centerMsg').innerHTML=msg.replace(/\n/g, '<br>'); 
           document.getElementById('centerModal').style.display='flex'; 
+      }
+      
+      // [신규 헬퍼] 확인(Confirm) 모달 띄우기 함수
+      function showConfirm(msg, yesCallback) {
+          document.getElementById('confirmMsg').innerHTML = msg.replace(/\n/g, '<br>');
+          var modal = document.getElementById('confirmModal');
+          
+          document.getElementById('btnConfirmCancel').onclick = function() {
+              modal.style.display = 'none';
+          };
+          
+          document.getElementById('btnConfirmOk').onclick = function() {
+              modal.style.display = 'none';
+              if(yesCallback) yesCallback();
+          };
+          
+          modal.style.display = 'flex';
       }
       
       function toggleType(t) {
@@ -371,7 +398,6 @@
           if (--timer < 0) { 
               clearInterval(authTimer); 
               display.textContent = "만료"; 
-              // [수정] 모달 적용
               showAlert("⏰ 인증 시간이 만료되었습니다.\n다시 시도해주세요."); 
               document.getElementById('authCode').value = ''; 
               document.getElementById('authBox').style.display = 'none'; 
@@ -391,7 +417,6 @@
 
       function reqEmailAuth() {
         var em = document.getElementById('email').value; var btn = document.getElementById('btnEmailReq'); 
-        // [수정] 모달 적용
         if(!em) return showAlert('이메일을 입력하세요.');
         
         btn.disabled = true; btn.textContent = "발송 중...";
@@ -402,7 +427,6 @@
                 btn.disabled = false; btn.textContent = "인증"; 
             }
             else if(res.result === 'SENT') { 
-               // [수정] 모달 적용
                showAlert('📧 인증번호가 발송되었습니다.\n메일함을 확인해주세요.'); 
                document.getElementById('authBox').style.display='flex'; 
                document.getElementById('authCode').focus(); startTimer(300, document.querySelector('#timer')); startButtonCooldown(180, btn);
@@ -433,7 +457,6 @@
                    el.readOnly = false; el.style.backgroundColor = "#fff"; el.focus(); 
                    if (res.result === 'BLOCK') { 
                        document.getElementById('emailError').textContent = '❌ 5회 오류: 10분간 제한'; 
-                       // [수정] 모달 적용
                        showAlert("🚫 보안 경고\n인증 시도가 너무 많아 10분간 제한됩니다."); 
                    } 
                    else { document.getElementById('emailError').textContent = '번호가 틀립니다.'; }
@@ -505,16 +528,18 @@
       }
       function closeDaumPostcode() { document.getElementById('layer').style.display='none'; }
 
+      // [수정] confirm() 대신 showConfirm() 모달 사용
       function enableEmailEdit() {
-          if (!confirm("이메일을 수정하시겠습니까?\n수정 시 인증을 다시 진행해야 합니다.")) return;
-          var emailInput = document.getElementById('email');
-          emailInput.readOnly = false; emailInput.style.backgroundColor = "#fff"; emailInput.focus();
-          document.getElementById('btnEmailEdit').style.display = 'none';
-          document.getElementById('btnEmailReq').style.display = 'block';
-          document.getElementById('isEmailVerified').value = 'false';
-          document.getElementById('authSuccessMsg').style.display = 'none';
-          document.getElementById('btnEmailReq').textContent = "인증";
-          document.getElementById('btnEmailReq').disabled = false;
+          showConfirm("이메일을 수정하시겠습니까?\n수정 시 인증을 다시 진행해야 합니다.", function() {
+              var emailInput = document.getElementById('email');
+              emailInput.readOnly = false; emailInput.style.backgroundColor = "#fff"; emailInput.focus();
+              document.getElementById('btnEmailEdit').style.display = 'none';
+              document.getElementById('btnEmailReq').style.display = 'block';
+              document.getElementById('isEmailVerified').value = 'false';
+              document.getElementById('authSuccessMsg').style.display = 'none';
+              document.getElementById('btnEmailReq').textContent = "인증";
+              document.getElementById('btnEmailReq').disabled = false;
+          });
       }
 
 // [SNS 연동 및 데이터 자동 채움 로직]
