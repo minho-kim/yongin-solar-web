@@ -353,16 +353,6 @@
       </div>
     </div>   
 
-    // MemberManage.html 스크립트 상단에 추가하면 좋음
-window.addEventListener('DOMContentLoaded', function() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('msg') === 'already_member') {
-        alert("이미 가입된 회원입니다.\n관리 페이지로 이동했습니다.");
-        // URL 청소
-        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-    }
-});
     <script>
       // ⚠️ 여기에 배포한 앱스크립트 웹 앱 URL을 넣으세요!
       const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
