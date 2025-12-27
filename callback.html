@@ -3,74 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 처리 중...</title>
+    <title>카카오/네이버 인증 처리</title>
     <style>
-        body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; background-color: #f5f5f5; }
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #4e8cff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        body { font-family: 'Apple SD Gothic Neo', sans-serif; text-align: center; margin-top: 60px; color: #333; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .msg { color: #555; font-size: 14px; font-weight: bold; }
+        h3 { margin-bottom: 10px; }
+        p { font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
     <div class="loader"></div>
-    <div class="msg" id="statusMsg">로그인 정보를 확인하고 있습니다...</div>
+    <h3>잠시만 기다려주세요.</h3>
+    <p id="status">인증 정보를 확인하고 있습니다...</p>
 
     <script>
-        // ⚠️ 앱스크립트 배포 URL (exec로 끝나는 주소)
-        // 국장님의 최신 배포 URL로 꼭 변경해주세요!
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
+        // 1. URL 파라미터 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state') || "";
 
-        window.onload = function() {
-            // 1. URL에서 code와 state 파라미터 추출
-            const urlParams = new URLSearchParams(window.location.search);
-            const authCode = urlParams.get('code');
-            const state = urlParams.get('state');
-            const error = urlParams.get('error');
+        // ★★★ [필수 수정] 배포된 앱스크립트 URL (exec로 끝나는 주소) ★★★
+        // 예: https://script.google.com/macros/s/.../exec
+        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec"; 
 
-            const statusEl = document.getElementById('statusMsg');
-
-            // 2. 에러 체크
-            if (error) {
-                statusEl.innerText = "로그인 취소 또는 오류 발생";
-                setTimeout(() => window.close(), 2000);
-                return;
-            }
-
-            if (!authCode) {
-                statusEl.innerText = "인증 코드가 없습니다.";
-                return;
-            }
-
-            // 3. 앱스크립트로 데이터 전송 (POST 요청)
-            // 브라우저가 직접 Apps Script로 이동하지 않고, 데이터만 보냅니다.
-            statusEl.innerText = "서버와 통신 중입니다...";
-
-            fetch(APPS_SCRIPT_URL, {
+        if (code) {
+            // 2. 서버로 인증 코드 전송
+            fetch(APPSCRIPT_URL, {
                 method: 'POST',
-                redirect: 'follow',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
-                    action: 'oauthCallback', // Main.gs에서 이 action을 처리하도록 만들 예정
-                    code: authCode,
+                    action: 'oauthCallback', 
+                    code: code,
                     state: state
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    statusEl.innerText = "인증 성공! 창을 닫습니다.";
-                    // 4. 성공 시 창 닫기
-                    window.close();
-                } else {
-                    statusEl.innerText = "오류: " + (data.message || "서버 응답 실패");
-                    // 실패해도 일단 닫지 않고 에러를 보여줌
+            .then(res => res.json())
+            .then(response => {
+                const result = response.result || response; 
+
+                // ============================================================
+                // [A] 회원가입 손님 (state가 'signup_'으로 시작)
+                // ============================================================
+                if (state.indexOf('signup_') === 0) {
+                    if (result.success && result.redirectUrl) {
+                        document.getElementById('status').innerText = "가입 신청서로 이동합니다...";
+                        // ★ 창을 닫지 않고, 받은 주소로 이동합니다!
+                        window.location.href = result.redirectUrl;
+                    } else {
+                        // 중복 가입 등으로 실패했을 때
+                        alert(result.message || "가입 처리 중 오류가 발생했습니다.");
+                        // 실패하면 다시 가입 안내 페이지 등으로 이동 (선택사항)
+                        window.history.back(); 
+                    }
+                } 
+                // ============================================================
+                // [B] 로그인/연동 손님 (기존 로직)
+                // ============================================================
+                else {
+                    if (result.success) {
+                        // 팝업이라면 창을 닫음
+                        if (window.opener) {
+                            window.close();
+                        } else {
+                            document.getElementById('status').innerText = "인증 완료되었습니다.";
+                            window.history.back();
+                        }
+                    } else {
+                        alert("인증 실패: " + result.message);
+                        window.close();
+                    }
                 }
             })
             .catch(err => {
                 console.error(err);
-                statusEl.innerText = "통신 오류 발생";
+                document.getElementById('status').innerText = "서버 통신 오류";
+                alert("서버와 통신 중 오류가 발생했습니다.");
             });
-        };
+        } else {
+            document.getElementById('status').innerText = "잘못된 접근입니다.";
+        }
     </script>
 </body>
 </html>
