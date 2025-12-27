@@ -90,6 +90,11 @@
                <svg viewBox="0 0 32 32" width="20" height="20"><path d="M16 4C9.922 4 5 8.014 5 12.964c0 3.197 2.067 6.007 5.223 7.575-.246.914-.888 3.321-.916 3.496-.046.302.109.432.288.432.124 0 .201-.034.303-.099 3.498-2.31 5.093-3.414 5.263-3.525.55.082 1.115.122 1.688.122 6.078 0 11-4.014 11-8.964S22.078 4 16 4z" fill="#000000"></path></svg>
                카카오로 3초 만에 시작하기
             </button>
+
+            <button class="btn-naver" id="btnNaverHidden" onclick="startNaverLogin()" style="background:#03C75A; color:white; width:100%; padding:14px; border-radius:10px; font-weight:bold; border:none; cursor:pointer; margin-top:10px; display:none !important;">
+               <span style="font-weight:900; font-size:16px; margin-right:5px;">N</span>
+               네이버로 시작하기
+            </button>
             
             <div id="emailAuthArea" class="hidden" style="margin-top:20px; border-top:1px dashed #eee; padding-top:20px;">
               <label>등록된 이메일</label>
@@ -346,8 +351,7 @@
         <div id="centerMsg" style="margin-bottom:15px; white-space:pre-wrap; font-size:15px; color:#333; line-height:1.5;"></div>
         <button type="button" class="btn-main" style="width:100%;" onclick="document.getElementById('centerModal').style.display='none'">확인</button>
       </div>
-    </div>
-
+    </div>   
     <script>
       // ⚠️ 여기에 배포한 앱스크립트 웹 앱 URL을 넣으세요!
       const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
@@ -1162,6 +1166,72 @@
                 showAlert("갱신 오류: " + err.message);
             });
       }
+
+      // [신규] 네이버 로그인 & 연동 로직
+// 카카오와 동일한 구조이며, 식별자만 Naver로 변경됨
+
+var naverPollTimer = null;
+var currentNaverState = "";
+
+function startNaverLogin() {
+  // 1. state 생성 (팝업 구분을 위해 'naver_login_' 접두어 사용)
+  var randomStr = Math.random().toString(36).substring(2, 15);
+  currentNaverState = "naver_login_" + randomStr;
+  
+  // 2. Client ID (나중에 HTML에도 상수로 선언 필요)
+  var NAVER_CLIENT_ID = "여기에_Client_ID_입력"; // ★ 키 발급 후 입력 필요
+  
+  if (NAVER_CLIENT_ID === "여기에_Client_ID_입력") {
+     return showAlert("네이버 로그인은 아직 준비 중입니다.");
+  }
+
+  // 3. URL 생성
+  var naverUrl = "https://nid.naver.com/oauth2.0/authorize" +
+                 "?response_type=code" +
+                 "&client_id=" + NAVER_CLIENT_ID +
+                 "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+                 "&state=" + currentNaverState;
+  
+  // 4. 팝업 & 폴링
+  window.open(naverUrl, 'naverLoginPopup', 'width=480,height=640');
+  showLoading(true);
+  
+  if(naverPollTimer) clearInterval(naverPollTimer);
+  naverPollTimer = setInterval(checkNaverStatus, 1500);
+}
+
+function checkNaverStatus() {
+  callApi('checkNaverLogin', { state: currentNaverState })
+   .then(res => {
+      if (res.status === 'WAITING') return;
+      
+      clearInterval(naverPollTimer);
+      showLoading(false);
+
+      if (res.status === 'CONNECTED') {
+         // 성공
+         curData = res.data;
+         curMem = { id: curData.memberId, name: curData.name, email: curData.email };
+         currentAuthCode = "NAVER_PASSED_" + currentNaverState;
+         
+         document.getElementById('loginSection').classList.add('hidden');
+         document.getElementById('kakaoLinkSection').classList.add('hidden'); // 카카오 섹션 재사용하거나 별도 섹션 필요
+         document.getElementById('dashboardSection').classList.remove('hidden');
+         renderDash();
+         resetLogoutTimer();
+      } 
+      else if (res.status === 'NOT_LINKED') {
+         // 미연동 -> 매칭 화면 (카카오와 UI 공유 가능)
+         // pendingKakaoId 대신 pendingNaverId 사용 필요
+         // 여기서는 간단히 알림만 띄움 (추후 UI 통합 필요)
+         showAlert("네이버 계정이 확인되었습니다.\n연동 기능은 UI 추가 후 이용 가능합니다.");
+      } 
+      else {
+         showAlert("네이버 로그인 실패: " + res.message);
+      }
+   })
+   .catch(e => console.error(e));
+}
     </script>
     <script>
       console.log("%c 용인모두의햇빛협동조합 %c System Ready ", "background: #006837; color: #ffffff; padding: 5px; border-radius: 4px; font-weight: bold;", "background: #333; color: #fff; padding: 5px; border-radius: 4px;");
