@@ -351,23 +351,26 @@
         <div id="centerMsg" style="margin-bottom:15px; white-space:pre-wrap; font-size:15px; color:#333; line-height:1.5;"></div>
         <button type="button" class="btn-main" style="width:100%;" onclick="document.getElementById('centerModal').style.display='none'">확인</button>
       </div>
-    </div>   
-
-    <script>
+    </div>
+<script>
       // 페이지가 로드되자마자 실행되는 코드
-  window.addEventListener('DOMContentLoaded', function() {
-      const params = new URLSearchParams(window.location.search);
-      
-      // 'already_member'라는 꼬리표가 붙어서 왔는지 확인
-      if (params.get('msg') === 'already_member') {
-          // 1. 안내 메시지 띄우기
-          alert("이미 가입된 회원입니다.\n관리 페이지로 이동했습니다."); 
+      window.addEventListener('DOMContentLoaded', function() {
+          const params = new URLSearchParams(window.location.search);
           
-          // 2. 주소창 청소 (새로고침 해도 또 뜨지 않게)
-          const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-          window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-      }
-  });
+          // 'already_member'라는 꼬리표가 붙어서 왔는지 확인
+          if (params.get('msg') === 'already_member') {
+              // [수정 완료] alert 대신 기존에 있는 예쁜 모달(showAlert)을 사용합니다.
+              // showAlert 함수는 아래에 정의되어 있지만, 호출 시점에는 문제없이 작동합니다.
+              setTimeout(function() { 
+                showAlert("👋 이미 가입된 회원입니다.\n관리 페이지로 이동했습니다.");
+              }, 100);
+              
+              // 2. 주소창 청소 (새로고침 해도 또 뜨지 않게)
+              const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+              window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+          }
+      });
+
       // ⚠️ 여기에 배포한 앱스크립트 웹 앱 URL을 넣으세요!
       const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
       // [신규] 카카오 앱키 및 리다이렉트 URI 상수
@@ -630,10 +633,10 @@ function startKakaoLogin() {
         
         // 2. 카카오 인증 URL 생성
         var kakaoUrl = "https://kauth.kakao.com/oauth/authorize" +
-                       "?client_id=" + KAKAO_KEY +
-                       "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-                       "&response_type=code" +
-                       "&state=" + currentKakaoState;
+                        "?client_id=" + KAKAO_KEY +
+                        "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+                        "&response_type=code" +
+                        "&state=" + currentKakaoState;
         
         // 3. 팝업 열기
         window.open(kakaoUrl, 'kakaoLoginPopup', 'width=480,height=640');
@@ -1204,10 +1207,10 @@ function startNaverLogin() {
 
   // 3. URL 생성
   var naverUrl = "https://nid.naver.com/oauth2.0/authorize" +
-                 "?response_type=code" +
-                 "&client_id=" + NAVER_CLIENT_ID +
-                 "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-                 "&state=" + currentNaverState;
+                  "?response_type=code" +
+                  "&client_id=" + NAVER_CLIENT_ID +
+                  "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+                  "&state=" + currentNaverState;
   
   // 4. 팝업 & 폴링
   window.open(naverUrl, 'naverLoginPopup', 'width=480,height=640');
