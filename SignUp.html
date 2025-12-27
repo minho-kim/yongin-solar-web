@@ -357,15 +357,30 @@
            .catch(err => console.error(err));
       }
 
-      function startTimer(duration, display) {
-        var timer = duration, minutes, seconds; if(authTimer) clearInterval(authTimer);
-        authTimer = setInterval(function () {
-          minutes = parseInt(timer / 60, 10); seconds = parseInt(timer % 60, 10);
-          minutes = minutes < 10 ? "0" + minutes : minutes; seconds = seconds < 10 ? "0" + seconds : seconds;
-          display.textContent = minutes + ":" + seconds;
-          if (--timer < 0) { clearInterval(authTimer); display.textContent = "만료"; alert("인증 시간이 만료되었습니다."); document.getElementById('authCode').value = ''; document.getElementById('authBox').style.display = 'none'; }
-        }, 1000);
+// [SignUp.html] 스크립트 중 'startTimer' 함수 교체
+function startTimer(duration, display) {
+    var timer = duration, minutes, seconds; 
+    if(authTimer) clearInterval(authTimer);
+    
+    authTimer = setInterval(function () {
+      minutes = parseInt(timer / 60, 10); 
+      seconds = parseInt(timer % 60, 10);
+      minutes = minutes < 10 ? "0" + minutes : minutes; 
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      display.textContent = minutes + ":" + seconds;
+      
+      if (--timer < 0) { 
+          clearInterval(authTimer); 
+          display.textContent = "만료"; 
+          
+          // alert -> showAlert 교체 (여기가 중요)
+          showAlert("⏰ 인증 시간이 만료되었습니다.\n다시 시도해주세요."); 
+          
+          document.getElementById('authCode').value = ''; 
+          document.getElementById('authBox').style.display = 'none'; 
       }
+    }, 1000);
+}
       function startButtonCooldown(duration, btn) {
         var timer = duration, minutes, seconds; if (btnCooldownTimer) clearInterval(btnCooldownTimer);
         btn.disabled = true; 
@@ -377,20 +392,40 @@
         }, 1000);
       }
 
-      function reqEmailAuth() {
-        var em = document.getElementById('email').value; var btn = document.getElementById('btnEmailReq'); 
-        if(!em) return showAlert('이메일을 입력하세요.');
-        btn.disabled = true; btn.textContent = "발송 중...";
-        callApi('sendEmailAuth', { email: em, userType: document.querySelector('input[name="userType"]:checked').value })
-          .then(res => {
-            if(res.result === 'DUPLICATE') { showAlert('이미 가입된 이메일입니다.'); btn.disabled = false; btn.textContent = "인증"; }
-            else if(res.result === 'SENT') { 
-               showAlert('인증번호가 발송되었습니다.'); document.getElementById('authBox').style.display='flex'; 
-               document.getElementById('authCode').focus(); startTimer(300, document.querySelector('#timer')); startButtonCooldown(180, btn);
-            } else { showAlert('오류: ' + res.message); btn.disabled = false; btn.textContent = "인증"; }
-          })
-          .catch(err => { showAlert("서버 통신 오류: " + err.message); btn.disabled = false; btn.textContent = "인증"; });
-      }
+// [SignUp.html] 스크립트 중 'reqEmailAuth' 함수 교체
+function reqEmailAuth() {
+    var em = document.getElementById('email').value; 
+    var btn = document.getElementById('btnEmailReq'); 
+    
+    // alert -> showAlert 교체
+    if(!em) return showAlert('이메일을 입력하세요.');
+    
+    btn.disabled = true; btn.textContent = "발송 중...";
+    
+    callApi('sendEmailAuth', { email: em, userType: document.querySelector('input[name="userType"]:checked').value })
+      .then(res => {
+        if(res.result === 'DUPLICATE') { 
+            showAlert('이미 가입된 이메일입니다.'); 
+            btn.disabled = false; btn.textContent = "인증"; 
+        }
+        else if(res.result === 'SENT') { 
+            // alert -> showAlert 교체
+            showAlert('📧 인증번호가 발송되었습니다.\n메일함을 확인해주세요.'); 
+            
+            document.getElementById('authBox').style.display='flex'; 
+            document.getElementById('authCode').focus(); 
+            startTimer(300, document.querySelector('#timer')); 
+            startButtonCooldown(180, btn);
+        } else { 
+            showAlert('오류: ' + res.message); 
+            btn.disabled = false; btn.textContent = "인증"; 
+        }
+      })
+      .catch(err => { 
+          showAlert("서버 통신 오류: " + err.message); 
+          btn.disabled = false; btn.textContent = "인증"; 
+      });
+}
       function handleAuthCodeInput() {
          var el = document.getElementById('authCode'); var val = el.value;
          if(val.length === 6) {
@@ -406,7 +441,10 @@
                    originalEmail = document.getElementById('email').value;
                 } else {
                    el.readOnly = false; el.style.backgroundColor = "#fff"; el.focus(); 
-                   if (res.result === 'BLOCK') { document.getElementById('emailError').textContent = '❌ 5회 오류: 10분간 제한'; alert("보안 경고: 인증 시도 과다"); } 
+if (res.result === 'BLOCK') { 
+       document.getElementById('emailError').textContent = '❌ 5회 오류: 10분간 제한'; 
+       showAlert("🚫 보안 경고\n인증 시도가 너무 많아 10분간 제한됩니다."); // alert -> showAlert
+   }
                    else { document.getElementById('emailError').textContent = '번호가 틀립니다.'; }
                 }
              })
