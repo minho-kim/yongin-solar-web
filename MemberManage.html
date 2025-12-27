@@ -607,9 +607,11 @@
       // [신규] 카카오 로그인 & 연동 로직
       // -----------------------------------------------------
 
-      function startKakaoLogin() {
-        // 1. 고유 상태값(state) 생성 (랜덤 문자열)
-        currentKakaoState = Math.random().toString(36).substring(2, 15);
+function startKakaoLogin() {
+        // [수정됨] 1. 고유 상태값 생성 시 'login_' 접두어 필수 추가!
+        // 이걸 붙여야 서버가 "아, 이건 회원가입이 아니라 관리페이지 로그인용이구나"라고 인식하고 팝업을 닫아줍니다.
+        var randomStr = Math.random().toString(36).substring(2, 15);
+        currentKakaoState = "login_" + randomStr;
         
         // 2. 카카오 인증 URL 생성
         var kakaoUrl = "https://kauth.kakao.com/oauth/authorize" +
@@ -621,7 +623,7 @@
         // 3. 팝업 열기
         window.open(kakaoUrl, 'kakaoLoginPopup', 'width=480,height=640');
         
-        // 4. 폴링 시작 (서버에 로그인이 완료되었는지 1초마다 확인)
+        // 4. 폴링 시작
         showLoading(true);
         document.querySelector('#loadingOverlay div:last-child').innerText = '카카오 로그인 확인 중...';
         
