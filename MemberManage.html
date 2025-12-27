@@ -747,7 +747,7 @@ function startKakaoLogin() {
                showAlert("🎉 연동이 완료되었습니다!\n이제 카카오로 간편하게 로그인하세요.", function() {
                   // 연동 성공 후 바로 로그인 처리
                   curData = res.data;
-                  currentAuthCode = code; // 인증코드 유지
+                  currentAuthCode = "KAKAO_PASS";
                   
                   document.getElementById('kakaoLinkSection').classList.add('hidden');
                   document.getElementById('dashboardSection').classList.remove('hidden');
