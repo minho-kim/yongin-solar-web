@@ -88,70 +88,92 @@
     </div>
 
     <script>
-        // ⚠️ 배포하신 앱스크립트 URL
-        const API_URL = "https://script.google.com/macros/s/AKfycbyB4YxiojN5ZsY3NDRxa6-LTBL7y8Ae_h182lm1Czl0567WGzEXhGP-RRHWXZdIkWXi/exec";
+    // [중요] 방금 생성된 stats.json 파일의 ID를 여기에 복사해 넣으세요!
+    // (구글 드라이브에서 stats.json 우클릭 -> 공유 -> 링크 복사에서 추출)
+    const STATS_JSON_ID = "1nAxLuDd2NHoYFgsVjaFIo2LbebdRLDWv"; 
+    
+    // 이제 앱스크립트 대신 구글 드라이브에서 직접 파일을 읽어옵니다 (속도 10배 향상)
+    const STATS_URL = "https://drive.google.com/uc?export=download&id=" + STATS_JSON_ID;
 
-        function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+    // 숫자 콤마 찍기 (예: 1,000,000)
+    function formatNumber(num) { 
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); 
+    }
 
-        function animateCount(id, endValue) {
-            const element = document.getElementById(id);
-            const duration = 1500; 
-            const startTime = performance.now();
-            const startValue = 0;
+    // 숫자 카운팅 애니메이션 함수
+    function animateCount(id, endValue) {
+        const element = document.getElementById(id);
+        if (!element) return;
+        
+        const duration = 1500; // 1.5초 동안 애니메이션
+        const startTime = performance.now();
+        const startValue = 0;
 
-            function update(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3); // cubic ease out
-                
-                const current = Math.floor(ease * (endValue - startValue) + startValue);
-                element.innerText = formatNumber(current);
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // 이징 함수 (부드럽게 멈춤)
+            const ease = 1 - Math.pow(1 - progress, 3); 
+            
+            const current = Math.floor(ease * (endValue - startValue) + startValue);
+            element.innerText = formatNumber(current);
 
-                if (progress < 1) requestAnimationFrame(update);
-                else element.innerText = formatNumber(endValue);
-            }
-            requestAnimationFrame(update);
-        }
-
-        async function loadStats() {
-            try {
-                // 1. URL 파라미터 확인 (?mode=member 또는 ?mode=money)
-                const urlParams = new URLSearchParams(window.location.search);
-                const mode = urlParams.get('mode');
-
-                // 2. 모드에 따라 박스 보이기/숨기기
-                if (mode === 'money') {
-                    document.getElementById('card-money').style.display = 'block';
-                } else {
-                    // 기본값은 member (또는 mode=member일 때)
-                    document.getElementById('card-member').style.display = 'block';
-                }
-
-                // 3. 데이터 가져오기 (둘 다 가져오긴 함)
-                const response = await fetch(API_URL + "?action=getStats");
-                const data = await response.json();
-
-                const indiv = Number(data.individual) || 0;
-                const group = Number(data.group) || 0;
-                const money = Number(data.amount) || 0;
-                const total = indiv + group;
-
-                // 4. 필요한 애니메이션만 실행
-                if (mode === 'money') {
-                    animateCount('totalMoney', money);
-                } else {
-                    animateCount('indivCount', indiv);
-                    animateCount('groupCount', group);
-                    animateCount('totalMember', total);
-                }
-
-            } catch (error) {
-                console.error("Error:", error);
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                element.innerText = formatNumber(endValue);
             }
         }
+        requestAnimationFrame(update);
+    }
 
-        loadStats();
-    </script>
+    async function loadStats() {
+        try {
+            // 1. 모드 확인 (?mode=money 또는 ?mode=member)
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+
+            // 2. 모드에 따라 박스 보여주기
+            if (mode === 'money') {
+                if(document.getElementById('card-money')) document.getElementById('card-money').style.display = 'block';
+            } else {
+                if(document.getElementById('card-member')) document.getElementById('card-member').style.display = 'block';
+            }
+
+            // 3. [핵심] JSON 파일 데이터 가져오기 (초고속 로딩)
+            const response = await fetch(STATS_URL);
+            
+            if (!response.ok) throw new Error("네트워크 응답 실패");
+            
+            const data = await response.json();
+
+            // 4. 데이터 파싱 (숫자로 변환)
+            const indiv = Number(data.individual) || 0;
+            const group = Number(data.group) || 0;
+            const money = Number(data.amount) || 0;
+            const total = indiv + group;
+
+            // 5. 애니메이션 실행
+            if (mode === 'money') {
+                animateCount('totalMoney', money);
+            } else {
+                animateCount('indivCount', indiv);
+                animateCount('groupCount', group);
+                animateCount('totalMember', total);
+            }
+            
+            console.log("✅ 데이터 로드 완료:", data.updatedAt); // 언제 갱신됐는지 로그 확인 가능
+
+        } catch (error) {
+            console.error("통계 로딩 실패:", error);
+            // 에러 발생 시 0으로 표시됨 (사용자에게 에러창 안 띄움)
+        }
+    }
+
+    // 시작!
+    loadStats();
+</script>
 
 </body>
 </html>
