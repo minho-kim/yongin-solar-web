@@ -649,45 +649,82 @@ function startKakaoLogin() {
         kakaoPollTimer = setInterval(checkKakaoStatus, 1500);
       }
 
-      function checkKakaoStatus() {
-         callApi('checkKakaoLogin', { state: currentKakaoState })
-           .then(res => {
-              if (res.status === 'WAITING') {
-                 // 아직 로그인 안함, 계속 대기
-                 return; 
-              }
-              
-              // 상태가 변하면 폴링 중단
-              clearInterval(kakaoPollTimer);
-              showLoading(false);
+      // 1. checkKakaoStatus 함수 수정 (불일치 감지 로직 추가)
+function checkKakaoStatus() {
+  callApi('checkKakaoLogin', { state: currentKakaoState })
+   .then(res => {
+      if (res.status === 'WAITING') return;
+      
+      clearInterval(kakaoPollTimer);
+      showLoading(false);
 
-              if (res.status === 'CONNECTED') {
-                 // [이미 연동된 회원] -> 바로 로그인 성공 처리
-                 curData = res.data;
-                 curMem = { id: curData.memberId, name: curData.name, email: curData.email };
-                 currentAuthCode = "KAKAO_PASSED_" + currentKakaoState; // 가상 인증코드
-                 
-                 document.getElementById('loginSection').classList.add('hidden');
-                 document.getElementById('kakaoLinkSection').classList.add('hidden');
-                 document.getElementById('dashboardSection').classList.remove('hidden');
-                 renderDash();
-                 resetLogoutTimer();
-                 
-              } else if (res.status === 'NOT_LINKED') {
-                 // [미연동 회원] -> 매칭 화면으로 전환
-                 pendingKakaoId = res.kakaoId; // 카카오 ID 저장
-                 document.getElementById('loginSection').classList.add('hidden');
-                 document.getElementById('kakaoLinkSection').classList.remove('hidden');
-                 showAlert("👋 반갑습니다!\n최초 1회, 조합원 정보를 연결해주세요.");
-              } else {
-                 showAlert("카카오 로그인 실패: " + (res.message || "알 수 없는 오류"));
-              }
-           })
-           .catch(err => {
-              console.error("Polling Error:", err);
-              // 폴링 중 에러는 무시하고 계속 시도 (네트워크 일시 오류 등)
-           });
+      if (res.status === 'CONNECTED') {
+         // 성공
+         curData = res.data;
+         curMem = { id: curData.memberId, name: curData.name, email: curData.email };
+         currentAuthCode = "KAKAO_PASSED_" + currentKakaoState;
+         
+         document.getElementById('loginSection').classList.add('hidden');
+         document.getElementById('kakaoLinkSection').classList.add('hidden');
+         document.getElementById('dashboardSection').classList.remove('hidden');
+         
+         renderDash();
+         resetLogoutTimer();
+
+         // ★★★ [신규] 전화번호 불일치 체크 ★★★
+         if (curData.phoneMismatch && curData.snsPhone) {
+             document.getElementById('diffDbPhone').textContent = curData.phone || "(없음)";
+             document.getElementById('diffSnsPhone').textContent = curData.snsPhone;
+             // 모달 띄우기
+             document.getElementById('phoneDiffModal').style.display = 'flex';
+         }
+
+      } 
+      else if (res.status === 'NOT_LINKED') {
+         pendingKakaoId = res.kakaoId;
+         document.getElementById('loginSection').classList.add('hidden');
+         document.getElementById('kakaoLinkSection').classList.remove('hidden');
+         showAlert("👋 반갑습니다!\n최초 1회, 조합원 정보를 연결해주세요.");
+      } 
+      else {
+         showAlert("카카오 로그인 실패: " + res.message);
       }
+   })
+   .catch(e => console.error(e));
+}
+
+// 2. [신규] SNS 번호로 즉시 업데이트하는 함수 추가
+function updateToSnsPhone() {
+    var newPhone = document.getElementById('diffSnsPhone').textContent;
+    if(!newPhone) return;
+
+    // 모달 닫기
+    document.getElementById('phoneDiffModal').style.display = 'none';
+    showLoading(true);
+
+    // 기존 updateMemberData API 재사용
+    var data = {
+        memberId: curMem.id,
+        phone: newPhone
+    };
+
+    callApi('updateMemberData', { data: data, email: curMem.email, code: currentAuthCode })
+      .then(res => {
+          showLoading(false);
+          if (res.success) {
+              showAlert("연락처가 업데이트되었습니다.");
+              // 화면에도 반영
+              curData.phone = newPhone;
+              renderDash();
+          } else {
+              showAlert("업데이트 실패: " + res.message);
+          }
+      })
+      .catch(err => {
+          showLoading(false);
+          showAlert("오류: " + err.message);
+      });
+}
 
       function cancelKakaoLink() {
          document.getElementById('kakaoLinkSection').classList.add('hidden');
@@ -1256,5 +1293,29 @@ function checkNaverStatus() {
     <script>
       console.log("%c 용인모두의햇빛협동조합 %c System Ready ", "background: #006837; color: #ffffff; padding: 5px; border-radius: 4px; font-weight: bold;", "background: #333; color: #fff; padding: 5px; border-radius: 4px;");
     </script>
+    <div id="phoneDiffModal" class="center-modal" style="display:none; z-index: 100001;">
+   <div class="modal-content" style="text-align: left;">
+      <div style="text-align:center; font-size:40px; margin-bottom:10px;">📲</div>
+      <h3 style="margin:0 0 10px 0; text-align:center;">연락처가 변경되었나요?</h3>
+      
+      <p style="font-size:14px; color:#555; margin-bottom:20px; line-height:1.5;">
+         조합에 등록된 번호와 카카오 계정의 번호가 다릅니다.<br>
+         최신 번호로 업데이트 하시겠습니까?
+      </p>
+
+      <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #eee;">
+         <div style="font-size:12px; color:#999;">현재 등록된 번호</div>
+         <div id="diffDbPhone" style="font-weight:bold; margin-bottom:10px; color:#555;">-</div>
+         
+         <div style="font-size:12px; color:#1967d2;">카카오(최신) 번호</div>
+         <div id="diffSnsPhone" style="font-weight:bold; color:#1967d2; font-size:16px;">-</div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+         <button onclick="document.getElementById('phoneDiffModal').style.display='none'" type="button" style="flex:1; background:#f1f3f4; color:#333; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer;">아니오</button>
+         <button onclick="updateToSnsPhone()" type="button" style="flex:1; background:#4e8cff; color:white; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer;">네, 변경할게요</button>
+      </div>
+   </div>
+</div>
   </body>
 </html>
