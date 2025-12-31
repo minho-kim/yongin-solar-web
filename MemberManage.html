@@ -643,7 +643,7 @@ function startKakaoLogin() {
         
         // 4. 폴링 시작
         showLoading(true);
-        document.querySelector('#loadingOverlay div:last-child').innerText = '보안 서버와 통신 중입니다....'<br>'(최대 5초 정도 소요될 수 있습니다)';
+        document.querySelector('#loadingOverlay div:last-child').innerText = '보안 서버와 통신 중입니다....최대 5초 정도 소요될 수 있습니다)';
         
         if(kakaoPollTimer) clearInterval(kakaoPollTimer);
         kakaoPollTimer = setInterval(checkKakaoStatus, 900);
