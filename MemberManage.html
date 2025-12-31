@@ -646,7 +646,7 @@ function startKakaoLogin() {
         document.querySelector('#loadingOverlay div:last-child').innerText = '카카오 로그인 확인 중...';
         
         if(kakaoPollTimer) clearInterval(kakaoPollTimer);
-        kakaoPollTimer = setInterval(checkKakaoStatus, 1500);
+        kakaoPollTimer = setInterval(checkKakaoStatus, 900);
       }
 
       // 1. checkKakaoStatus 함수 수정 (불일치 감지 로직 추가)
