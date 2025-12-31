@@ -664,7 +664,9 @@ function checkKakaoStatus() {
          // 성공
          curData = res.data;
          curMem = { id: curData.memberId, name: curData.name, email: curData.email };
-         currentAuthCode = "KAKAO_PASSED_" + currentKakaoState;
+         
+         // ★★★ [수정] 서버가 내려준 '진짜 토큰'을 그대로 사용합니다. (가장 안전)
+         currentAuthCode = curData.sessionToken; 
          
          document.getElementById('loginSection').classList.add('hidden');
          document.getElementById('kakaoLinkSection').classList.add('hidden');
@@ -682,10 +684,7 @@ function checkKakaoStatus() {
 
       } 
       else if (res.status === 'NOT_LINKED') {
-         // [오류 수정] 기존 res.kakaoId -> res.data.kakaoId 로 변경
-         // 서버가 { status:..., data: { kakaoId: ... } } 형태로 보내기 때문입니다.
-         pendingKakaoId = res.data.kakaoId; 
-         
+         pendingKakaoId = res.data.kakaoId;
          document.getElementById('loginSection').classList.add('hidden');
          document.getElementById('kakaoLinkSection').classList.remove('hidden');
          showAlert("👋 반갑습니다!\n최초 1회, 조합원 정보를 연결해주세요.");
