@@ -650,6 +650,8 @@ function startKakaoLogin() {
       }
 
       // 1. checkKakaoStatus 함수 수정 (불일치 감지 로직 추가)
+// [MemberManage.html] checkKakaoStatus 함수 수정본
+
 function checkKakaoStatus() {
   callApi('checkKakaoLogin', { state: currentKakaoState })
    .then(res => {
@@ -671,17 +673,19 @@ function checkKakaoStatus() {
          renderDash();
          resetLogoutTimer();
 
-         // ★★★ [신규] 전화번호 불일치 체크 ★★★
+         // 전화번호 불일치 체크
          if (curData.phoneMismatch && curData.snsPhone) {
              document.getElementById('diffDbPhone').textContent = curData.phone || "(없음)";
              document.getElementById('diffSnsPhone').textContent = curData.snsPhone;
-             // 모달 띄우기
              document.getElementById('phoneDiffModal').style.display = 'flex';
          }
 
       } 
       else if (res.status === 'NOT_LINKED') {
-         pendingKakaoId = res.kakaoId;
+         // [오류 수정] 기존 res.kakaoId -> res.data.kakaoId 로 변경
+         // 서버가 { status:..., data: { kakaoId: ... } } 형태로 보내기 때문입니다.
+         pendingKakaoId = res.data.kakaoId; 
+         
          document.getElementById('loginSection').classList.add('hidden');
          document.getElementById('kakaoLinkSection').classList.remove('hidden');
          showAlert("👋 반갑습니다!\n최초 1회, 조합원 정보를 연결해주세요.");
